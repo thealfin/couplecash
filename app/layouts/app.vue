@@ -28,10 +28,15 @@ const showBottomNav = computed(() => {
     <!-- Fixed Header -->
     <header class="app-header">
       <div class="header-inner">
-        <div class="header-logo">
-          <div class="logo-icon">
-            <span class="material-symbols-outlined" style="font-size:18px;color:var(--on-primary)">account_balance_wallet</span>
-          </div>
+        <div class="header-logo cursor-pointer" @click="navigateTo('/beranda')">
+          <img
+            src="/pwa-icon.svg"
+            alt="CoupleCash Logo"
+            class="logo-image"
+            width="32"
+            height="32"
+            @error="($event.target as HTMLImageElement).src = '/pwa-icon.png'"
+          />
           <span class="logo-text">CoupleCash</span>
         </div>
         <div
@@ -118,16 +123,22 @@ const showBottomNav = computed(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+  user-select: none;
 }
 
-.logo-icon {
+.logo-image {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 9px;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 2px 8px rgba(70, 72, 212, 0.22);
+  transition: transform 0.15s ease;
+}
+
+.header-logo:active .logo-image {
+  transform: scale(0.95);
 }
 
 .logo-text {

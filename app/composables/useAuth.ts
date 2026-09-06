@@ -114,10 +114,29 @@ export function useAuth() {
       }
       
       return { success: false, message: 'Gagal mendapatkan sesi login' }
-    } catch (err: any) {
-      return { success: false, message: err?.message || 'Terjadi kesalahan' }
+    } catch (error: any) {
+      return { success: false, message: error?.message || 'Terjadi kesalahan sistem' }
     }
   }
+
+  async function loginWithGoogle(): Promise<{ success: boolean; message?: string }> {
+    try {
+      if (!import.meta.client) return { success: false, message: 'Harus dijalankan di klien' }
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/beranda`,
+        },
+      })
+      if (error) {
+        return { success: false, message: error.message }
+      }
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Gagal memulai login Google' }
+    }
+  }
+
 
   async function register(fullName: string, role: 'suami' | 'istri', email: string, password?: string): Promise<{ success: boolean; message?: string }> {
     try {
@@ -289,8 +308,10 @@ export function useAuth() {
     isHouseholdUnlinkOpen,
     initializeAuth,
     login,
+    loginWithGoogle,
     register,
     logout,
+    fetchProfile,
     syncPartner,
     openSyncModal,
     closeSyncModal,

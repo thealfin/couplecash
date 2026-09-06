@@ -60,14 +60,13 @@ async function handleSave() {
     <Transition name="fade">
       <div
         v-if="isHouseholdEditOpen"
-        class="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
-        @click.self="closeHouseholdEdit"
+        class="fixed inset-0 z-[110] bg-[#fcf8ff] overflow-y-auto min-h-dvh flex flex-col"
       >
-        <div class="w-full max-w-md min-h-screen sm:min-h-0 bg-[#fcf8ff] sm:rounded-[32px] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-purple-100 animate-scale-up">
+        <div class="w-full max-w-md mx-auto min-h-full flex flex-col justify-between">
 
           <div>
-            <!-- Navigation Header -->
-            <div class="px-5 pt-6 pb-3 flex items-center justify-between border-b border-purple-50 bg-[#fcf8ff]">
+            <!-- Navigation Header (Sticky with Arrow Back) -->
+            <div class="sticky top-0 z-20 px-5 pt-4 pb-3 flex items-center justify-between border-b border-purple-100/60 bg-[#fcf8ff]/95 backdrop-blur-md shadow-xs">
               <div class="flex items-center gap-3">
                 <button
                   type="button"

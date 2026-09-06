@@ -331,7 +331,7 @@ CoupleCash menerapkan prinsip **Privacy by Design**:
 1. **Clone repositori**:
 
    ```bash
-   git clone https://github.com/your-username/CoupleCash.git
+   git clone https://github.com/thealfin/CoupleCash.git
    cd CoupleCash
    ```
 
@@ -394,4 +394,4 @@ R2_ACCOUNT_ID="your-cloudflare-account-id"
 ## 📄 Lisensi
 
 Hak Cipta © 2026 **CoupleCash Project**. Seluruh hak cipta dilindungi undang-undang.
-Dibuat dengan ❤️ untuk keluarga harmonis yang bijak mengelola finansial.
+Dibuat oleh thealfin (seorang programer yang b aja) untuk keluarga harmonis yang bijak mengelola finansial.

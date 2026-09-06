@@ -36,7 +36,7 @@ async function handleConfirmUnlink() {
     <Transition name="fade">
       <div
         v-if="isHouseholdUnlinkOpen"
-        class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
+        class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
         @click.self="closeHouseholdUnlink"
       >
         <div class="w-full max-w-[390px] bg-[#fcf8ff] rounded-[28px] shadow-2xl overflow-hidden border border-purple-100/80 p-5 sm:p-6 text-center space-y-4 animate-scale-up">

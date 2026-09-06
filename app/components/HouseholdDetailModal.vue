@@ -56,14 +56,13 @@ function handleUnlink() {
     <Transition name="fade">
       <div
         v-if="isHouseholdDetailOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
-        @click.self="closeHouseholdDetail"
+        class="fixed inset-0 z-[100] bg-[#fcf8ff] overflow-y-auto min-h-dvh flex flex-col"
       >
-        <div class="w-full max-w-md min-h-screen sm:min-h-0 bg-[#fcf8ff] sm:rounded-[32px] shadow-2xl relative flex flex-col justify-between overflow-hidden border border-purple-100 animate-scale-up">
+        <div class="w-full max-w-md mx-auto min-h-full flex flex-col justify-between">
 
-          <!-- Top Header Navigation -->
+          <!-- Top Header Navigation (Sticky with Arrow Back) -->
           <div>
-            <div class="px-5 pt-6 pb-3 flex items-center justify-between border-b border-purple-50 bg-[#fcf8ff]">
+            <div class="sticky top-0 z-20 px-5 pt-4 pb-3 flex items-center justify-between border-b border-purple-100/60 bg-[#fcf8ff]/95 backdrop-blur-md shadow-xs">
               <div class="flex items-center gap-3">
                 <button
                   type="button"
@@ -309,7 +308,7 @@ function handleUnlink() {
           </div>
 
           <!-- Quick Footer Note -->
-          <div class="px-5 pb-6 text-center text-slate-400 text-[11px]">
+          <div class="px-5 pb-12 text-center text-slate-400 text-[11px]">
             CoupleCash Connected Household • ID: {{ inviteCode }}
           </div>
         </div>

@@ -1,4 +1,6 @@
-# 💑 CoupleCash — Smart Cash Flow & Financial Management for Couples
+# 💑 CoupleCash
+
+## Smart Cash Flow & Financial Management for Couples
 
 <p align="center">
   <img src="public/pwa-icon.png" alt="CoupleCash Logo" width="120" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(70,72,212,0.35);" />
@@ -22,6 +24,7 @@
 ---
 
 ## 📖 Daftar Isi
+
 1. [Tentang CoupleCash](#-tentang-couplecash)
 2. [Tampilan Antarmuka Aplikasi (Screenshots)](#-tampilan-antarmuka-aplikasi-screenshots)
 3. [Fitur Unggulan & Elemen Aplikasi](#-fitur-unggulan--elemen-aplikasi)
@@ -37,7 +40,7 @@
 
 ## 🌟 Tentang CoupleCash
 
-**CoupleCash** adalah aplikasi progressive web application (PWA) manajemen keuangan modern yang dirancang khusus untuk pasangan suami istri dan keluarga. Aplikasi ini memfasilitasi keterbukaan finansial tanpa menghilangkan privasi personal melalui pemisahan kepemilikan aset (*Suami*, *Istri*, dan *Bersama*).
+**CoupleCash** adalah aplikasi progressive web application (PWA) manajemen keuangan modern yang dirancang khusus untuk pasangan suami istri dan keluarga. Aplikasi ini memfasilitasi keterbukaan finansial tanpa menghilangkan privasi personal melalui pemisahan kepemilikan aset (_Suami_, _Istri_, dan _Bersama_).
 
 Didukung oleh kecerdasan buatan **Google Gemini Multimodal AI (Vision OCR)** dengan konsep **BYOK (Bring Your Own Key)**, pasangan dapat memindai nota dan struk belanjaan secara instan tanpa mengorbankan privasi data keuangan mereka.
 
@@ -47,20 +50,20 @@ Didukung oleh kecerdasan buatan **Google Gemini Multimodal AI (Vision OCR)** den
 
 Berikut adalah galeri tangkapan layar antarmuka asli CoupleCash pada perangkat mobile:
 
-| 1. Masuk / Onboarding | 2. Dashboard Beranda Bersama | 3. Kalender & Analitik Finansial |
-| :---: | :---: | :---: |
+|                             1. Masuk / Onboarding                             |                                2. Dashboard Beranda Bersama                                 |                          3. Kalender & Analitik Finansial                           |
+| :---------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------: |
 | <img src="docs/screenshots/01_auth_login.png" width="260" alt="Login Page" /> | <img src="docs/screenshots/02_beranda_dashboard.png" width="260" alt="Dashboard Beranda" /> | <img src="docs/screenshots/03_analitik.png" width="260" alt="Analitik Finansial" /> |
-| *Halaman autentikasi bersih dengan Google OAuth & Email/Password* | *Total saldo bersama, pembagian proporsi suami/istri, dan pos akun* | *Kalender arus kas harian dengan status pemasukan, beban, dan tagihan* |
+|       _Halaman autentikasi bersih dengan Google OAuth & Email/Password_       |             _Total saldo bersama, pembagian proporsi suami/istri, dan pos akun_             |       _Kalender arus kas harian dengan status pemasukan, beban, dan tagihan_        |
 
-| 4. Monitoring Budget Bulanan | 5. Target Impian (Goals) | 6. Manajemen Akun & Household |
-| :---: | :---: | :---: |
+|                         4. Monitoring Budget Bulanan                          |                          5. Target Impian (Goals)                           |                     6. Manajemen Akun & Household                      |
+| :---------------------------------------------------------------------------: | :-------------------------------------------------------------------------: | :--------------------------------------------------------------------: |
 | <img src="docs/screenshots/04_budget.png" width="260" alt="Budget Bulanan" /> | <img src="docs/screenshots/05_goals.png" width="260" alt="Goals Bersama" /> | <img src="docs/screenshots/06_akun.png" width="260" alt="Menu Akun" /> |
-| *Batas pengeluaran per pos kategori dengan indikator visual over-budget* | *Tabungan bersama impian dengan tracking kontribusi suami & istri* | *Pengaturan rumah tangga (BuTi), status sinkronisasi, dan brankas* |
+|   _Batas pengeluaran per pos kategori dengan indikator visual over-budget_    |     _Tabungan bersama impian dengan tracking kontribusi suami & istri_      |   _Pengaturan rumah tangga (BuTi), status sinkronisasi, dan brankas_   |
 
-| 7. Pengaturan Asisten AI (BYOK) | 8. Input Transaksi Manual Cepat | 9. Kamera Pemindai Struk AI |
-| :---: | :---: | :---: |
+|                           7. Pengaturan Asisten AI (BYOK)                           |                             8. Input Transaksi Manual Cepat                             |                              9. Kamera Pemindai Struk AI                              |
+| :---------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------: |
 | <img src="docs/screenshots/07_pengaturan_ai.png" width="260" alt="Pengaturan AI" /> | <img src="docs/screenshots/08_input_transaksi.png" width="260" alt="Input Transaksi" /> | <img src="docs/screenshots/09_kamera_scanner.png" width="260" alt="Kamera Scanner" /> |
-| *Konfigurasi terpusat Google Gemini (AIza... & AQ...) terenkripsi AES-GCM* | *Pencatatan fleksibel dengan nominal chips cepat & split pembayaran* | *Viewfinder hardware responsif dengan laser reticle & Live OCR* |
+|     _Konfigurasi terpusat Google Gemini (AIza... & AQ...) terenkripsi AES-GCM_      |          _Pencatatan fleksibel dengan nominal chips cepat & split pembayaran_           |            _Viewfinder hardware responsif dengan laser reticle & Live OCR_            |
 
 <p align="center">
   <img src="docs/screenshots/10_ai_ocr_sheet.png" width="340" alt="AI OCR Engine Bottom Sheet" /><br>
@@ -72,6 +75,7 @@ Berikut adalah galeri tangkapan layar antarmuka asli CoupleCash pada perangkat m
 ## 💎 Fitur Unggulan & Elemen Aplikasi
 
 ### 1. Dual-Ownership & Transparent Cash Flow
+
 - **3 Tingkat Kepemilikan**: Setiap akun finansial, kategori, transaksi, anggaran, dan tagihan dapat ditandai sebagai:
   - 🔵 **Suami**: Akun atau beban milik suami.
   - 🔴 **Istri**: Akun atau beban milik istri.
@@ -79,11 +83,13 @@ Berikut adalah galeri tangkapan layar antarmuka asli CoupleCash pada perangkat m
 - **Sensor Saldo Privasi**: Fitur sekali klik untuk menyembunyikan nominal saldo saat berada di ruang publik.
 
 ### 2. Sinkronisasi Real-Time & Household Pairing
+
 - **Invite Code Unik**: Hubungkan akun pasangan melalui 6-karakter kode verifikasi rumah tangga.
 - **Status Hubungan**: Kelola nama rumah tangga, motto keluarga, tanggal awal periode pembukuan (cut-off gaji), dan opsi pemutusan hubungan data dengan aman.
 
 ### 3. Pemindai Struk Cerdas Berbasis AI (Vision OCR)
-- **Live Hardware Viewfinder**: Akses langsung ke kamera perangkat dengan deteksi otomatis kamera belakang (*environment*) pada ponsel dan webcam pada laptop.
+
+- **Live Hardware Viewfinder**: Akses langsung ke kamera perangkat dengan deteksi otomatis kamera belakang (_environment_) pada ponsel dan webcam pada laptop.
 - **Multimodal Extraction**: Membaca otomatis nama merchant/toko, tanggal, total pembayaran, subtotal, diskon, PPN/PB1, service charge, dan metode pembayaran.
 - **Varian Model Google Gemini**:
   - **Gemini 2.5 Flash**: Ekstraksi super cepat (~800ms) hemat kuota token.
@@ -91,22 +97,27 @@ Berikut adalah galeri tangkapan layar antarmuka asli CoupleCash pada perangkat m
 - **Offline Cache & Async Cloud Backup**: Nota disimpan seketika di IndexedDB lokal pengguna, sementara pencadangan gambar ke Cloudflare R2 dijalankan secara asinkron di latar belakang.
 
 ### 4. Anggaran (Budgeting) & Notifikasi Over-Budget
+
 - Penetapan batas pagu pengeluaran bulanan per kategori.
-- Progress bar interaktif dengan deteksi batas toleransi (*Over Budget Warning*).
+- Progress bar interaktif dengan deteksi batas toleransi (_Over Budget Warning_).
 
 ### 5. Target Impian (Goals / Tabungan Bersama)
+
 - Pantau progres tabungan liburan, dana pendidikan anak, atau pembelian rumah.
 - Perhitungan proporsi kontribusi persentase antara Suami dan Istri secara otomatis.
 
 ### 6. Pengingat Tagihan & Langganan (Bills)
+
 - Pencatatan pengeluaran rutin bulanan (listrik, internet, BPJS, streaming).
-- Pelunasan satu klik (*Pay Bill*) yang otomatis mencatat transaksi pengeluaran dan memotong saldo akun finansial terkait.
+- Pelunasan satu klik (_Pay Bill_) yang otomatis mencatat transaksi pengeluaran dan memotong saldo akun finansial terkait.
 
 ### 7. Brankas Kredensial Digital (Vault)
+
 - Penyimpanan aman informasi rekening, nomor pelanggan, dan PIN/kata sandi layanan perbankan keluarga.
 - Diproteksi enkripsi client-side AES-GCM-256 bit.
 
 ### 8. Progressive Web App (PWA)
+
 - Instalasi langsung dari browser (Add to Home Screen) di Android, iOS, Windows, dan macOS.
 - Bekerja secara responsif dan fullscreen tanpa address bar browser.
 
@@ -114,18 +125,18 @@ Berikut adalah galeri tangkapan layar antarmuka asli CoupleCash pada perangkat m
 
 ## 🛠 Teknologi & Stack Teknis (Tech Stack)
 
-| Kategori | Teknologi | Deskripsi / Peran |
-| :--- | :--- | :--- |
-| **Frontend Framework** | **Nuxt 4 (v4.5.2)** + **Vue 3 (v3.5.41)** | SSR/SPA modern berbasis Composition API dan file-based routing. |
-| **Styling & Design** | **Tailwind CSS (v3.4)** + **Plus Jakarta Sans** | Desain utility-first mobile responsif dengan warna dinamis & micro-animations. |
-| **Backend / Server Engine** | **Nitro (v2.13.4)** | Fullstack TypeScript server routes terintegrasi di dalam Nuxt. |
-| **Database & Auth** | **Supabase (PostgreSQL 15)** | Relational database dengan Row Level Security (RLS) & Supabase Auth. |
-| **Database ORM & Types** | **Drizzle ORM (v0.45)** + **postgres.js** | Type-safe SQL client dan query builder. |
-| **Cloud Object Storage** | **Cloudflare R2** via **AWS SDK S3** | Penyimpanan gambar struk & avatar tanpa biaya transfer egress data. |
-| **Artificial Intelligence** | **Google Gemini API (@google/generative-ai)** | Multimodal AI Vision untuk OCR struk dan asisten keuangan interaktif. |
-| **Local Offline Cache** | **IndexedDB (`idb` v8)** | Penyimpanan lokal untuk cache struk, offline draft, dan enkripsi key. |
-| **Kriptografi & Security** | **Web Crypto API (AES-GCM-256)** | Enkripsi end-to-end client-side untuk API Key dan data brankas rahasia. |
-| **Pengujian & Otomasi** | **Playwright (v1.62)** | Validasi end-to-end dan penangkapan tangkapan layar terotomasi. |
+| Kategori                    | Teknologi                                       | Deskripsi / Peran                                                              |
+| :-------------------------- | :---------------------------------------------- | :----------------------------------------------------------------------------- |
+| **Frontend Framework**      | **Nuxt 4 (v4.5.2)** + **Vue 3 (v3.5.41)**       | SSR/SPA modern berbasis Composition API dan file-based routing.                |
+| **Styling & Design**        | **Tailwind CSS (v3.4)** + **Plus Jakarta Sans** | Desain utility-first mobile responsif dengan warna dinamis & micro-animations. |
+| **Backend / Server Engine** | **Nitro (v2.13.4)**                             | Fullstack TypeScript server routes terintegrasi di dalam Nuxt.                 |
+| **Database & Auth**         | **Supabase (PostgreSQL 15)**                    | Relational database dengan Row Level Security (RLS) & Supabase Auth.           |
+| **Database ORM & Types**    | **Drizzle ORM (v0.45)** + **postgres.js**       | Type-safe SQL client dan query builder.                                        |
+| **Cloud Object Storage**    | **Cloudflare R2** via **AWS SDK S3**            | Penyimpanan gambar struk & avatar tanpa biaya transfer egress data.            |
+| **Artificial Intelligence** | **Google Gemini API (@google/generative-ai)**   | Multimodal AI Vision untuk OCR struk dan asisten keuangan interaktif.          |
+| **Local Offline Cache**     | **IndexedDB (`idb` v8)**                        | Penyimpanan lokal untuk cache struk, offline draft, dan enkripsi key.          |
+| **Kriptografi & Security**  | **Web Crypto API (AES-GCM-256)**                | Enkripsi end-to-end client-side untuk API Key dan data brankas rahasia.        |
+| **Pengujian & Otomasi**     | **Playwright (v1.62)**                          | Validasi end-to-end dan penangkapan tangkapan layar terotomasi.                |
 
 ---
 
@@ -167,6 +178,7 @@ graph TD
 ```
 
 ### Alur Pemindaian Struk AI (Vision OCR Pipeline):
+
 1. Pengguna mengambil foto struk di [`app/pages/input/kamera.vue`](file:///d:/All%20Project%20Website/CoupleCash/app/pages/input/kamera.vue).
 2. Frame langsung dikonversi ke JPEG base64 dan disimpan di IndexedDB lokal pengguna secara instan.
 3. Kunci Gemini API didekripsi dari IndexedDB menggunakan Web Crypto API dan dikirimkan via header `X-Gemini-Api-Key`.
@@ -197,7 +209,7 @@ erDiagram
     users ||--o{ goals : "membuat"
     users ||--o{ vault_credentials : "pemilik"
     users ||--o| ai_user_settings : "konfigurasi ai"
-    
+
     financial_accounts ||--o{ transactions : "sumber dana"
     categories ||--o{ transactions : "kategori beban"
     categories ||--o{ budgets : "kategori anggaran"
@@ -235,6 +247,7 @@ erDiagram
 Seluruh endpoint server dibangun di atas arsitektur Nitro Server Routes yang terbagi dalam modular domain:
 
 ### 1. Manajemen Akun & Finansial (`/api/accounts`)
+
 - `GET /api/accounts`: Mengambil seluruh daftar rekening bank, e-wallet, uang tunai, dan pos hutang.
 - `POST /api/accounts`: Mendaftarkan pos akun finansial baru.
 - `PUT /api/accounts/[id]`: Memperbarui data akun (nama, warna, icon, saldo awal).
@@ -242,6 +255,7 @@ Seluruh endpoint server dibangun di atas arsitektur Nitro Server Routes yang ter
 - `POST /api/accounts/pay-debt`: Melunasi pinjaman/hutang dan otomatis menyesuaikan saldo rekening pemotong.
 
 ### 2. Kecerdasan Buatan & OCR (`/api/ai`)
+
 - `POST /api/ai/validate-key`: Validasi kunci API Gemini langsung ke Google AI API (Mendukung prefix `AIza...` dan format baru `AQ...`).
 - `POST /api/ai/analyze-receipt`: Analisis gambar struk berbasis Vision AI untuk mengurai nominal, merchant, tanggal, dan PPN.
 - `GET /api/ai/settings` & `PUT /api/ai/settings`: Sinkronisasi preferensi model AI dan status aktivasi.
@@ -249,34 +263,41 @@ Seluruh endpoint server dibangun di atas arsitektur Nitro Server Routes yang ter
 - `POST /api/ai/chat`: Streaming interaksi pesan dengan Gemini Financial Advisor.
 
 ### 3. Analitik & Kalender Arus Kas (`/api/analytics`)
+
 - `GET /api/analytics`: Mengambil agregasi arus kas, perbandingan pemasukan vs pengeluaran, dan rasio belanja bulanan.
 - `GET /api/analytics/calendar`: Data transaksi kalender per tanggal untuk visualisasi titik status pemasukan, beban, dan tagihan.
 
 ### 4. Transaksi & Dashboard (`/api/transactions`, `/api/dashboard`)
+
 - `GET /api/dashboard`: Ringkasan instan saldo gabungan, saldo per individu, transaksi terbaru, dan tagihan jatuh tempo.
 - `POST /api/transactions`: Mencatat transaksi pemasukan, pengeluaran, atau transfer antar pos rekening.
 
 ### 5. Anggaran & Pagu Belanja (`/api/budgets`)
+
 - `GET /api/budgets`: Menghitung penggunaan anggaran terhadap transaksi nyata di periode berjalan.
 - `POST /api/budgets`, `PUT /api/budgets/[id]`, `DELETE /api/budgets/[id]`: Operasi CRUD anggaran kategori.
 
 ### 6. Tagihan & Langganan (`/api/bills`)
+
 - `GET /api/bills` & `POST /api/bills`: Pencatatan tagihan listrik, internet, cicilan, dan asuransi.
 - `POST /api/bills/pay`: Bayar tagihan satu klik dengan pembuatan transaksi otomatis.
 
 ### 7. Hubungan Pasangan & Rumah Tangga (`/api/couple`)
+
 - `POST /api/couple/generate-code`: Membuat 6-digit kode undangan rumah tangga.
 - `POST /api/couple/verify-code`: Memasukkan kode pasangan untuk bergabung ke household yang sama.
 - `PUT /api/couple/household`: Mengubah profil dan motto rumah tangga.
 - `POST /api/couple/unlink`: Memutus keterikatan household secara terisolasi dan aman.
 
 ### 8. Penyimpanan Cloudflare R2 (`/api/storage`)
+
 - `POST /api/storage/presign`: Membuat Signed URL S3 untuk upload langsung dari klien.
 - `POST /api/storage/upload`: Proxy upload server untuk file nota transaksi.
 - `GET /api/storage/view`: Mendapatkan link tampilan foto struk dengan masa berlaku terbatas.
 - `DELETE /api/storage/delete`: Menghapus file fisik dari bucket Cloudflare R2.
 
 ### 9. Target Impian Bersama (`/api/goals`)
+
 - `GET /api/goals` & `POST /api/goals`: Pengelolaan target impian tabungan.
 - `POST /api/goals/contribute`: Setoran kontribusi tabungan dari suami atau istri ke pos impian.
 
@@ -285,18 +306,20 @@ Seluruh endpoint server dibangun di atas arsitektur Nitro Server Routes yang ter
 ## 🔐 Keamanan & Privasi Tingkat Tinggi (Zero-Knowledge BYOK)
 
 CoupleCash menerapkan prinsip **Privacy by Design**:
+
 1. **Model BYOK (Bring Your Own Key)**:
    - Server tidak pernah menyimpan kunci Gemini API Anda secara permanen di database publik. Kunci dienkripsi menggunakan algoritma standar industri **AES-GCM 256-bit** dan disimpan di IndexedDB browser lokal Anda.
 2. **PostgreSQL Row Level Security (RLS)**:
    - Seluruh tabel database diproteksi oleh kebijakan RLS berbasis `household_id`. Pasangan lain tidak akan pernah dapat melihat data keuangan keluarga Anda.
 3. **Data Masking**:
-   - Nomor rekening dan informasi sensitif disamarkan (*masked*) pada tampilan UI demi keamanan saat membuka aplikasi di tempat umum.
+   - Nomor rekening dan informasi sensitif disamarkan (_masked_) pada tampilan UI demi keamanan saat membuka aplikasi di tempat umum.
 
 ---
 
 ## 🚀 Panduan Instalasi & Menjalankan Aplikasi
 
 ### Prasyarat:
+
 - **Node.js**: Versi 20.x atau lebih baru (Disarankan Node.js 22 LTS / 25).
 - **Package Manager**: `npm` atau `pnpm`.
 - Akun **Supabase** (PostgreSQL + Auth).
@@ -306,27 +329,33 @@ CoupleCash menerapkan prinsip **Privacy by Design**:
 ### Langkah Instalasi:
 
 1. **Clone repositori**:
+
    ```bash
    git clone https://github.com/your-username/CoupleCash.git
    cd CoupleCash
    ```
 
 2. **Install dependensi**:
+
    ```bash
    npm install
    ```
 
 3. **Siapkan berkas lingkungan (`.env`)**:
    Salin dari template `.env.example`:
+
    ```bash
    cp .env.example .env
    ```
+
    Isi konfigurasi sesuai kredensial Supabase dan Cloudflare R2 Anda.
 
 4. **Jalankan Development Server**:
+
    ```bash
    npm run dev
    ```
+
    Buka peramban Anda di `http://localhost:3000`.
 
 5. **Build untuk Production**:
@@ -363,5 +392,6 @@ R2_ACCOUNT_ID="your-cloudflare-account-id"
 ---
 
 ## 📄 Lisensi
+
 Hak Cipta © 2026 **CoupleCash Project**. Seluruh hak cipta dilindungi undang-undang.
 Dibuat dengan ❤️ untuk keluarga harmonis yang bijak mengelola finansial.

@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Mode Offline — CoupleCash</title>
+  <meta name="theme-color" content="#4648d4">
+  <link rel="icon" type="image/png" href="/pwa-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4648d4;
+      --primary-light: #6063ee;
+      --bg: #FAFAFB;
+      --card-bg: #FFFFFF;
+      --text-main: #1B1B23;
+      --text-muted: #6B7280;
+      --border: #E4E1ED;
+      --success: #10B981;
+      --amber: #F59E0B;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0B0D12;
+        --card-bg: #15171E;
+        --text-main: #E4E1ED;
+        --text-muted: #9CA3AF;
+        --border: #2A2C36;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .offline-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 36px 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .icon-wrapper {
+      position: relative;
+      width: 84px;
+      height: 84px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, var(--primary), #8455ef);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      box-shadow: 0 12px 28px rgba(70, 72, 212, 0.35);
+    }
+
+    .app-icon {
+      width: 100%;
+      height: 100%;
+      border-radius: 18px;
+      object-fit: cover;
+    }
+
+    .offline-badge {
+      position: absolute;
+      bottom: -6px;
+      right: -6px;
+      background: #EF4444;
+      color: #FFFFFF;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      border: 3px solid var(--card-bg);
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      margin-top: 4px;
+    }
+
+    .description {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .features-list {
+      width: 100%;
+      background: color-mix(in srgb, var(--primary) 6%, transparent);
+      border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .feature-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .actions-group {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(70, 72, 212, 0.3);
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 12px 20px;
+      border-radius: 16px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s ease;
+    }
+
+    .btn-secondary:hover {
+      background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+    }
+
+    .status-toast {
+      position: fixed;
+      bottom: 24px;
+      background: #10B981;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+      display: none;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-card">
+    <div class="icon-wrapper">
+      <img src="/pwa-icon.png" alt="CoupleCash" class="app-icon">
+      <div class="offline-badge">✕</div>
+    </div>
+
+    <h1 class="title">Koneksi Terputus</h1>
+    <p class="description">
+      Perangkat Anda saat ini tidak terhubung ke internet. Data yang telah tersimpan di cache lokal tetap aman dan dapat diakses.
+    </p>
+
+    <div class="features-list">
+      <div class="feature-item">
+        <div class="feature-dot"></div>
+        <span>UI Shell &amp; Cache Lokal Aktif</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-dot"></div>
+        <span>Data Transaksi Tersimpan di Perangkat</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-dot"></div>
+        <span>Auto-Sinkronisasi saat Koneksi Kembali</span>
+      </div>
+    </div>
+
+    <div class="actions-group">
+      <button class="btn-primary" onclick="retryConnection()" id="retryBtn">
+        Coba Muat Ulang
+      </button>
+      <a href="/beranda" class="btn-secondary">
+        Buka Beranda Tersimpan
+      </a>
+    </div>
+  </div>
+
+  <div class="status-toast" id="onlineToast">
+    ✓ Terhubung kembali! Memuat data...
+  </div>
+
+  <script>
+    function retryConnection() {
+      const btn = document.getElementById('retryBtn');
+      btn.innerText = 'Memeriksa koneksi...';
+      btn.style.opacity = '0.7';
+
+      if (navigator.onLine) {
+        window.location.reload();
+      } else {
+        setTimeout(() => {
+          btn.innerText = 'Coba Muat Ulang';
+          btn.style.opacity = '1';
+          alert('Koneksi internet belum tersedia. Silakan periksa jaringan Wi-Fi atau data seluler Anda.');
+        }, 800);
+      }
+    }
+
+    window.addEventListener('online', () => {
+      const toast = document.getElementById('onlineToast');
+      toast.style.display = 'block';
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    });
+  </script>
+</body>
+</html>

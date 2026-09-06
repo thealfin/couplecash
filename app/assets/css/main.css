@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   CoupleCash — Global CSS Design System
+   ============================================================ */
+
+/* Base Reset & Font */
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  /* ── Surfaces ── */
+  --background:                 #FAFAFB;
+  --surface:                    #fcf8ff;
+  --surface-bright:             #fcf8ff;
+  --surface-container-lowest:   #ffffff;
+  --surface-container-low:      #f5f2fe;
+  --surface-container:          #efecf8;
+  --surface-container-high:     #e9e6f3;
+  --surface-container-highest:  #e4e1ed;
+  --surface-variant:            #e4e1ed;
+  --surface-tint:               #494bd6;
+  --surface-dim:                #dbd8e4;
+
+  /* ── Text on Surfaces ── */
+  --on-surface:                 #1b1b23;
+  --on-surface-variant:         #464554;
+  --on-background:              #1b1b23;
+  --muted:                      #6B7280;
+  --outline:                    #767586;
+  --outline-variant:            #c7c4d7;
+
+  /* ── Primary (Indigo Brand) ── */
+  --primary:                    #4648d4;
+  --primary-container:          #6063ee;
+  --primary-fixed:              #e1e0ff;
+  --primary-fixed-dim:          #c0c1ff;
+  --inverse-primary:            #c0c1ff;
+  --on-primary:                 #ffffff;
+  --on-primary-container:       #fffbff;
+  --on-primary-fixed:           #07006c;
+  --on-primary-fixed-variant:   #2f2ebe;
+
+  /* ── Secondary (Violet) ── */
+  --secondary:                  #6b38d4;
+  --secondary-container:        #8455ef;
+  --secondary-fixed:            #e9ddff;
+  --secondary-fixed-dim:        #d0bcff;
+  --on-secondary:               #ffffff;
+  --on-secondary-container:     #fffbff;
+  --on-secondary-fixed:         #23005c;
+  --on-secondary-fixed-variant: #5516be;
+
+  /* ── Tertiary (Amber/Warm) ── */
+  --tertiary:                   #904900;
+  --tertiary-container:         #b55d00;
+  --tertiary-fixed:             #ffdcc5;
+  --tertiary-fixed-dim:         #ffb783;
+  --on-tertiary:                #ffffff;
+  --on-tertiary-container:      #fffbff;
+  --on-tertiary-fixed:          #301400;
+  --on-tertiary-fixed-variant:  #703700;
+
+  /* ── Error ── */
+  --error:                      #ba1a1a;
+  --error-container:            #ffdad6;
+  --on-error:                   #ffffff;
+  --on-error-container:         #93000a;
+
+  /* ── Inverse ── */
+  --inverse-surface:            #303038;
+  --inverse-on-surface:         #f2effb;
+
+  /* ── Domain Tokens (CoupleCash) ── */
+  --suami:    #3B82F6;   /* Blue-500  — Suami */
+  --istri:    #EC4899;   /* Pink-500  — Istri */
+  --gabungan: #8B5CF6;   /* Violet-500 — Bersama */
+  --income:   #10B981;   /* Emerald-500 — Pemasukan */
+  --expense:  #F43F5E;   /* Rose-500 — Pengeluaran */
+  --warning:  #F59E0B;   /* Amber-500 — Peringatan */
+
+  /* ── Typography Scale ── */
+  --font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+}
+
+/* Dark Mode */
+.dark {
+  --background:                 #0B0D12;
+  --surface:                    #15171e;
+  --surface-container-lowest:   #0f1015;
+  --surface-container-low:      #1a1c24;
+  --surface-container:          #1e2029;
+  --surface-container-high:     #242630;
+  --surface-container-highest:  #2a2c36;
+  --on-surface:                 #e4e1ed;
+  --on-surface-variant:         #c7c4d7;
+  --on-background:              #e4e1ed;
+  --muted:                      #9ca3af;
+  --outline-variant:            #46444f;
+}
+
+/* ── Base Styles ── */
+html {
+  font-size: 80%;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  background-color: var(--background);
+  color: var(--on-surface);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* Safe areas for mobile */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0); }
+.mb-safe { margin-bottom: env(safe-area-inset-bottom, 0); }
+
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Material Symbols base */
+@layer base {
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    line-height: 1;
+    font-size: 1.5rem;
+    user-select: none;
+  }
+}
+
+/* ── Tabular numbers ── */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── UI Design Token Utilities ── */
+.bg-background { background-color: var(--background); }
+.bg-surface { background-color: var(--surface); }
+.bg-surface-container-lowest { background-color: var(--surface-container-lowest); }
+.bg-surface-container-low { background-color: var(--surface-container-low); }
+.bg-surface-container { background-color: var(--surface-container); }
+.bg-surface-container-high { background-color: var(--surface-container-high); }
+.bg-surface-container-highest { background-color: var(--surface-container-highest); }
+
+.bg-primary { background-color: var(--primary); }
+.bg-primary-container { background-color: var(--primary-container); }
+.bg-secondary-container { background-color: var(--secondary-container); }
+.bg-suami { background-color: var(--suami); }
+.bg-istri { background-color: var(--istri); }
+.bg-income { background-color: var(--income); }
+.bg-expense { background-color: var(--expense); }
+.bg-warning { background-color: var(--warning); }
+
+.text-on-background { color: var(--on-background); }
+.text-on-surface { color: var(--on-surface); }
+.text-on-surface-variant { color: var(--on-surface-variant); }
+.text-on-primary { color: var(--on-primary); }
+.text-on-primary-container { color: var(--on-primary-container); }
+.text-on-secondary-container { color: var(--on-secondary-container); }
+.text-primary { color: var(--primary); }
+.text-muted { color: var(--muted); }
+.text-outline { color: var(--outline); }
+.text-suami { color: var(--suami); }
+.text-istri { color: var(--istri); }
+.text-income { color: var(--income); }
+.text-expense { color: var(--expense); }
+.text-warning { color: var(--warning); }
+
+.border-outline-variant { border-color: var(--outline-variant); }
+.border-surface-container-high { border-color: var(--surface-container-high); }
+
+.px-margin-page { padding-left: 1rem; padding-right: 1rem; }
+
+.text-headline-md { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+.font-headline-md { font-family: var(--font-family); font-weight: 600; }
+.text-body-base { font-size: 1rem; line-height: 1.5rem; font-weight: 400; }
+.font-body-base { font-family: var(--font-family); }
+.text-label-sm { font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; }
+.font-label-sm { font-family: var(--font-family); font-weight: 500; }
+.text-metadata-xs { font-size: 0.75rem; line-height: 1rem; font-weight: 400; }
+.font-metadata-xs { font-family: var(--font-family); }
+.font-tabular-number { font-size: 1rem; line-height: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.font-display-balance { font-size: 1.875rem; line-height: 2.25rem; letter-spacing: -0.02em; font-weight: 700; }
+
+/* ── Transition helpers ── */
+.transition-all { transition: all 0.2s ease; }
+.transition-colors { transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
+.transition-transform { transition: transform 0.15s ease; }
+
+/* ── Animations ── */
+@keyframes shimmer {
+  100% { transform: translateX(200%); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes scan {
+  0% { transform: translateY(-40px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(40px); opacity: 0; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s infinite;
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+.animate-scan {
+  animation: scan 2s ease-in-out infinite alternate;
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* ── Active press state ── */
+.active-scale:active {
+  transform: scale(0.97);
+}

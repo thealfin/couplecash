@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+
+<html lang="id"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100vw;height:100vh;margin:0;padding:0;background-color:#000000;overflow:hidden;}body{overscroll-behavior:none;font-family:'Plus Jakarta Sans',sans-serif;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"on-error":"#ffffff","on-secondary-container":"#fffbff","surface-container-highest":"#e4e1ed","surface-container":"#efecf8","on-surface-variant":"#464554","error":"#ba1a1a","surface-container-lowest":"#ffffff","on-tertiary-fixed-variant":"#703700","primary":"#4648d4","surface-tint":"#494bd6","expense":"#F43F5E","on-tertiary-container":"#fffbff","tertiary-fixed-dim":"#ffb783","tertiary-container":"#b55d00","surface-variant":"#e4e1ed","on-primary-fixed":"#07006c","on-tertiary-fixed":"#301400","warning":"#F59E0B","secondary-fixed-dim":"#d0bcff","secondary-container":"#8455ef","tertiary-fixed":"#ffdcc5","background":"#FAFAFB","muted":"#6B7280","secondary-fixed":"#e9ddff","suami":"#3B82F6","outline-variant":"#c7c4d7","inverse-surface":"#303038","inverse-on-surface":"#f2effb","primary-fixed":"#e1e0ff","on-primary":"#ffffff","istri":"#EC4899","surface":"#fcf8ff","tertiary":"#904900","on-primary-fixed-variant":"#2f2ebe","primary-fixed-dim":"#c0c1ff","primary-container":"#6063ee","income":"#10B981","on-secondary":"#ffffff","on-background":"#1b1b23","on-primary-container":"#fffbff","surface-dim":"#dbd8e4","on-error-container":"#93000a","surface-container-high":"#e9e6f3","outline":"#767586","on-surface":"#1b1b23","secondary":"#6b38d4","on-secondary-fixed":"#23005c","surface-bright":"#fcf8ff","inverse-primary":"#c0c1ff","on-tertiary":"#ffffff","surface-container-low":"#f5f2fe","on-secondary-fixed-variant":"#5516be","error-container":"#ffdad6"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"stack-md":"1rem","margin-page":"1rem","gutter-grid":"1rem","stack-lg":"1.5rem","stack-sm":"0.5rem"},"fontFamily":{"tabular-number":["Plus Jakarta Sans"],"display-balance":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"body-base":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"metadata-xs":["Plus Jakarta Sans"]},"fontSize":{"tabular-number":["16px",{"lineHeight":"24px","fontWeight":"600"}],"display-balance":["30px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"700"}],"label-sm":["14px",{"lineHeight":"20px","fontWeight":"500"}],"body-base":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"metadata-xs":["12px",{"lineHeight":"16px","fontWeight":"400"}]}}}}</script></head><body class="bg-black text-white w-full h-full select-none overflow-hidden font-body-base">
+<div class="relative w-full h-full flex flex-col justify-between overflow-hidden">
+<!-- Realistic Camera Viewfinder Background with Struk & Subtle Vignette -->
+<div class="absolute inset-0 z-0 bg-cover bg-center scale-105" data-alt="A paper grocery supermarket store receipt laying flat on a natural wooden kitchen table photographed top-down flat lay smartphone camera view" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuALWk9E8TFS-wTBKIzqakSs29wAtjyKqbiAKNH30C2EN6GnPiFaEZpp_wYYxCzpbnPmek75bDG3apIu_xWogVz9Zvfl8aAIfLOzi60yn-9u9AWxBeH6L5IEPh5lVUUWwjAvp85-qONvJ5SGxdb4kmTG9lDlwKEQU7vEvF-LXF5CGfUgCPELgf5EQwM1sRP7TPcGg4Cn0WT5F5W52FNWJuWZ9ajAROc4CIkKB3RGF_-XCNXP8PAaIko');">
+</div>
+<!-- Immersive Dark Vignette & Top/Bottom Camera Overlays -->
+<div class="absolute inset-0 z-0 bg-gradient-to-b from-black/80 via-transparent to-black/90 pointer-events-none"></div>
+<div class="absolute inset-0 z-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.6)] pointer-events-none"></div>
+<!-- 1. Floating Top Navigation Bar (Header) -->
+<header class="relative z-30 pt-safe px-5 pt-3 flex items-center justify-between">
+<!-- Close Button (X) -->
+<button aria-label="Tutup Pemindai" class="w-11 h-11 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white flex items-center justify-center active:scale-90 transition-all shadow-lg hover:bg-black/60" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+<!-- AI Live Status Badge -->
+<div class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/45 backdrop-blur-xl border border-white/15 text-white shadow-lg">
+<span class="material-symbols-outlined text-[18px] text-primary-fixed animate-pulse">auto_awesome</span>
+<div class="flex items-center gap-1.5 font-medium text-xs tracking-wide">
+<span class="font-semibold text-white">Gemini 2.5 Flash</span>
+<span class="w-1 h-1 rounded-full bg-income"></span>
+<span class="text-income font-medium">Live OCR</span>
+</div>
+</div>
+<!-- Flash Toggle Button -->
+<button aria-label="Nyalakan Flash" class="w-11 h-11 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white flex items-center justify-center active:scale-90 transition-all shadow-lg hover:bg-black/60" id="flashToggleBtn" type="button">
+<span class="material-symbols-outlined text-[22px]" id="flashIcon">flash_off</span>
+</button>
+</header>
+<!-- 2. Live Scanner Viewfinder Frame Area -->
+<main class="relative z-20 flex-1 flex flex-col items-center justify-center px-6 py-2">
+<!-- Center Framing Container -->
+<div class="relative w-full max-w-[340px] aspect-[3/4] max-h-[58vh] flex flex-col justify-between items-center">
+<!-- Corner Bracket Scanning Guides (SVG Glowing Brackets) -->
+<svg class="absolute inset-0 w-full h-full text-primary-fixed pointer-events-none drop-shadow-[0_0_12px_rgba(96,99,238,0.7)]" fill="none" viewbox="0 0 320 400">
+<!-- Top Left -->
+<path d="M 6 42 L 6 16 A 10 10 0 0 1 16 6 L 42 6" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
+<!-- Top Right -->
+<path d="M 278 6 L 304 6 A 10 10 0 0 1 314 16 L 314 42" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
+<!-- Bottom Left -->
+<path d="M 6 358 L 6 384 A 10 10 0 0 0 16 394 L 42 394" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
+<!-- Bottom Right -->
+<path d="M 278 394 L 304 394 A 10 10 0 0 0 314 384 L 314 358" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
+</svg>
+<!-- Animated Scanning Laser Beam -->
+<div class="absolute left-2 right-2 h-[2px] bg-gradient-to-r from-transparent via-primary-fixed to-transparent opacity-90 shadow-[0_0_18px_6px_rgba(96,99,238,0.85)] z-20 pointer-events-none transition-transform duration-75" id="scanLine" style="top: 38%;"></div>
+<!-- Real-time Detected Pills (Floating inside scanner frame) -->
+<div class="w-full flex flex-col gap-2 p-3 pt-4 z-20">
+<div class="flex flex-wrap items-center gap-1.5">
+<!-- Pill: Merchant -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-income/95 backdrop-blur-md text-white font-medium text-xs shadow-md border border-white/20">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Supermarket Grand Lucky</span>
+</div>
+<!-- Pill: Date -->
+<div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-income/95 backdrop-blur-md text-white font-medium text-xs shadow-md border border-white/20">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>24 Okt 2024</span>
+</div>
+<!-- Pill: Total -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-income/95 backdrop-blur-md text-white font-bold text-xs shadow-md border border-white/20">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Total: Rp 185.000</span>
+</div>
+</div>
+</div>
+<!-- Center Dynamic Helper Text Tooltip -->
+<div class="z-20 mb-3 px-4 py-2 rounded-xl bg-black/60 backdrop-blur-xl border border-white/10 text-center text-white/90 shadow-xl max-w-[280px]">
+<p class="text-xs leading-relaxed font-normal">
+          Posisikan struk dalam batas kotak. Pastikan total dan nama toko terlihat jelas.
+        </p>
+</div>
+</div>
+<!-- Live Lens Indicators (Aspect & Focus) -->
+<div class="mt-2 flex items-center justify-center gap-4 text-white/70 text-[11px] tracking-wide">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary-fixed animate-ping"></span>
+<span>Auto-Focus AI</span>
+</div>
+<span>•</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">crop_free</span>
+<span>Auto-Deskew</span>
+</div>
+</div>
+</main>
+<!-- 3. Bottom Glassmorphic Camera Controls & Status Bar -->
+<footer class="relative z-30 pb-safe pb-4 px-6 flex flex-col items-center gap-4">
+<!-- Camera Controls Bar -->
+<div class="w-full max-w-sm flex items-center justify-between px-4">
+<!-- Gallery Picker Button -->
+<button aria-label="Buka Galeri" class="flex flex-col items-center gap-1 text-white/80 active:scale-90 transition-transform group" type="button">
+<div class="w-13 h-13 w-12 h-12 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg group-hover:bg-white/25">
+<span class="material-symbols-outlined text-[24px] text-white">photo_library</span>
+</div>
+<span class="text-[11px] font-medium tracking-tight text-white/90">Galeri</span>
+</button>
+<!-- Thumb-friendly Giant Shutter Button -->
+<button aria-label="Ambil Foto Struk" class="relative group flex items-center justify-center active:scale-95 transition-transform duration-150" id="shutterBtn" type="button">
+<!-- Ambient Glowing Aura -->
+<div class="absolute inset-0 rounded-full bg-primary-container blur-xl opacity-75 group-hover:opacity-100 transition-opacity"></div>
+<!-- Outer Glowing Ring -->
+<div class="w-20 h-20 rounded-full p-1 border-2 border-white/80 backdrop-blur-sm flex items-center justify-center shadow-2xl">
+<!-- Inner Pure White Shutter Disk -->
+<div class="w-full h-full rounded-full bg-white text-primary flex items-center justify-center shadow-inner active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-[30px] text-primary">photo_camera</span>
+</div>
+</div>
+</button>
+<!-- AI Mode / Model Switcher Button -->
+<button aria-label="Pengaturan Model AI" class="flex flex-col items-center gap-1 text-white/80 active:scale-90 transition-transform group" id="modelBtn" type="button">
+<div class="w-12 h-12 rounded-full bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center shadow-lg group-hover:bg-white/25">
+<span class="material-symbols-outlined text-[24px] text-white">tune</span>
+</div>
+<span class="text-[11px] font-medium tracking-tight text-white/90">Model AI</span>
+</button>
+</div>
+<!-- Quick Pill Status at Very Bottom -->
+<div class="flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white/70 text-[11px] font-medium tracking-wide">
+<span class="w-1.5 h-1.5 rounded-full bg-income"></span>
+<span>BYOK Aktif</span>
+<span class="text-white/30">•</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-primary-fixed">lock</span>
+        Enkripsi AES-256
+      </span>
+</div>
+</footer>
+</div>
+<script>
+  (function() {
+    let laserDir = 1;
+    let laserPos = 20;
+    const scanLine = document.getElementById('scanLine');
+    
+    // Laser vertical scanning sweep loop inside camera frame
+    function animateLaser() {
+      if (scanLine) {
+        laserPos += 0.5 * laserDir;
+        if (laserPos >= 80) {
+          laserDir = -1;
+        } else if (laserPos <= 20) {
+          laserDir = 1;
+        }
+        scanLine.style.top = laserPos + '%';
+      }
+      requestAnimationFrame(animateLaser);
+    }
+    requestAnimationFrame(animateLaser);
+
+    // Flash Toggle
+    const flashBtn = document.getElementById('flashToggleBtn');
+    const flashIcon = document.getElementById('flashIcon');
+    let flashMode = 0; // 0: off, 1: on, 2: auto
+    const modes = [
+      { icon: 'flash_off', bg: 'bg-black/40', text: 'text-white' },
+      { icon: 'flash_on', bg: 'bg-warning', text: 'text-neutral-900' },
+      { icon: 'flash_auto', bg: 'bg-primary', text: 'text-white' }
+    ];
+
+    if (flashBtn && flashIcon) {
+      flashBtn.addEventListener('click', function() {
+        flashMode = (flashMode + 1) % modes.length;
+        flashIcon.textContent = modes[flashMode].icon;
+        flashBtn.className = `w-11 h-11 rounded-full ${modes[flashMode].bg} backdrop-blur-xl border border-white/20 ${modes[flashMode].text} flex items-center justify-center active:scale-90 transition-all shadow-lg`;
+      });
+    }
+
+    // Shutter Trigger Visual Flash & Haptic Feedback
+    const shutter = document.getElementById('shutterBtn');
+    if (shutter) {
+      shutter.addEventListener('click', function() {
+        const flashOverlay = document.createElement('div');
+        flashOverlay.className = 'fixed inset-0 z-50 bg-white pointer-events-none transition-opacity duration-200';
+        flashOverlay.style.opacity = '0.85';
+        document.body.appendChild(flashOverlay);
+        setTimeout(() => {
+          flashOverlay.style.opacity = '0';
+          setTimeout(() => flashOverlay.remove(), 250);
+        }, 80);
+      });
+    }
+  })();
+</script>
+</body></html>

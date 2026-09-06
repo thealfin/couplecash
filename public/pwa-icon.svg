@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4648d4"/>
+      <stop offset="50%" stop-color="#6063ee"/>
+      <stop offset="100%" stop-color="#8455ef"/>
+    </linearGradient>
+    <linearGradient id="suamiGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="istriGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F472B6"/>
+      <stop offset="100%" stop-color="#DB2777"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Inner Subtle Accent -->
+  <rect x="48" y="48" width="416" height="416" rx="96" fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="4" />
+
+  <!-- Wallet Body -->
+  <g filter="url(#shadow)" transform="translate(0, 10)">
+    <!-- Wallet main box -->
+    <rect x="128" y="168" width="256" height="192" rx="32" fill="#ffffff" />
+    
+    <!-- Wallet top flap -->
+    <path d="M 128 200 C 128 176, 144 160, 168 160 L 344 160 C 368 160, 384 176, 384 200 L 384 216 L 128 216 Z" fill="#E0E7FF" />
+
+    <!-- Dual Avatars on Wallet -->
+    <circle cx="210" cy="264" r="36" fill="url(#suamiGrad)" stroke="#ffffff" stroke-width="4"/>
+    <text x="210" y="273" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="800" fill="#ffffff" text-anchor="middle">S</text>
+
+    <circle cx="258" cy="264" r="36" fill="url(#istriGrad)" stroke="#ffffff" stroke-width="4"/>
+    <text x="258" y="273" font-family="'Plus Jakarta Sans', sans-serif" font-size="28" font-weight="800" fill="#ffffff" text-anchor="middle">I</text>
+
+    <!-- Clasp / Lock -->
+    <rect x="320" y="236" width="64" height="56" rx="16" fill="#4648d4" />
+    <circle cx="344" cy="264" r="10" fill="#F59E0B" />
+  </g>
+</svg>

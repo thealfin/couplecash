@@ -1,4 +1,4 @@
-# 💑 CoupleCash
+# CoupleCash
 
 ## Smart Cash Flow & Financial Management for Couples
 

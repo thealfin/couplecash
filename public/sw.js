@@ -96,7 +96,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 3: Network-First for API & Data requests
+  // Explicitly NEVER cache sensitive vault, security, or biometric endpoints
+  if (
+    url.pathname.startsWith('/api/vault') ||
+    url.pathname.startsWith('/api/security')
+  ) {
+    // Direct network-only fetch, never hit or put into SW cache
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Strategy 3: Network-First for general API & Data requests
   if (
     url.pathname.startsWith('/api/') ||
     url.hostname.includes('supabase.co')
@@ -171,9 +181,12 @@ async function networkFirstData(request) {
 
   try {
     const networkResponse = await fetch(request);
+    const cacheControl = networkResponse?.headers?.get('Cache-Control') || '';
     if (
       networkResponse &&
-      networkResponse.status === 200
+      networkResponse.status === 200 &&
+      !cacheControl.includes('no-store') &&
+      !cacheControl.includes('no-cache')
     ) {
       dynamicCache.put(request, networkResponse.clone()).catch(() => {});
     }

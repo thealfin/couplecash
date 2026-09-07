@@ -7,12 +7,16 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "npx tsx tests/vault-security.test.mjs",
+    "typecheck": "npx nuxi typecheck"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1123.0",
     "@aws-sdk/s3-request-presigner": "^3.1123.0",
     "@google/generative-ai": "^0.24.1",
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.1",
     "@supabase/supabase-js": "^2.112.4",
     "drizzle-orm": "^0.45.2",
     "idb": "^8.0.3",

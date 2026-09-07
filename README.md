@@ -18,6 +18,8 @@
   <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/Cloudflare_R2-Storage-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare R2" />
   <img src="https://img.shields.io/badge/Google_Gemini-2.5_Flash_%26_Pro-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Gemini AI" />
+  <img src="https://img.shields.io/badge/WebAuthn-FIDO2_Biometrics-10B981?style=for-the-badge&logo=fido&logoColor=white" alt="WebAuthn FIDO2" />
+  <img src="https://img.shields.io/badge/AES--256--GCM-Zero_Knowledge_Vault-6366F1?style=for-the-badge&logo=shield&logoColor=white" alt="Vault Security" />
   <img src="https://img.shields.io/badge/PWA-Ready-9B51E0?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA" />
 </p>
 
@@ -32,7 +34,7 @@
 5. [Arsitektur Sistem & Data Flow](#-arsitektur-sistem--data-flow)
 6. [Skema Database Supabase PostgreSQL](#-skema-database-supabase-postgresql)
 7. [Integrasi Server & Katalog API (`/server/api`)](#-integrasi-server--katalog-api-serverapi)
-8. [Keamanan & Privasi Tingkat Tinggi (Zero-Knowledge BYOK)](#-keamanan--privasi-tingkat-tinggi-zero-knowledge-byok)
+8. [Keamanan & Privasi Tingkat Tinggi (Zero-Knowledge, WebAuthn & BYOK)](#-keamanan--privasi-tingkat-tinggi-zero-knowledge-webauthn--byok)
 9. [Panduan Instalasi & Menjalankan Aplikasi](#-panduan-instalasi--menjalankan-aplikasi)
 10. [Konfigurasi Environment Variables (`.env`)](#-konfigurasi-environment-variables-env)
 
@@ -111,32 +113,54 @@ Berikut adalah galeri tangkapan layar antarmuka asli CoupleCash pada perangkat m
 - Pencatatan pengeluaran rutin bulanan (listrik, internet, BPJS, streaming).
 - Pelunasan satu klik (_Pay Bill_) yang otomatis mencatat transaksi pengeluaran dan memotong saldo akun finansial terkait.
 
-### 7. Brankas Kredensial Digital (Vault)
+### 7. Brankas Kredensial Digital (Secure Vault) & Autentikasi Biometrik (WebAuthn / FIDO2)
 
-- Penyimpanan aman informasi rekening, nomor pelanggan, dan PIN/kata sandi layanan perbankan keluarga.
-- Diproteksi enkripsi client-side AES-GCM-256 bit.
+- **Zero-Knowledge Architecture**: Enkripsi penuh sisi klien menggunakan **AES-256-GCM** dengan random 96-bit IV. Kunci master turunan disimpan dalam IndexedDB terisolasi; server hanya menyimpan ciphertext dan metadata tanpa kemampuan membaca konten rahasia.
+- **Autentikasi Biometrik Perangkat Asli**: Buka brankas menggunakan sensor biometrik bawaan (Touch ID, Face ID, Windows Hello, Android Biometrics) berbasis standar **WebAuthn / FIDO2**.
+- **PIN Cadangan Terproteksi Tinggi**: Proteksi PIN 4–8 digit dengan algoritma **PBKDF2** (SHA-256, 100.000 putaran bergaram unik).
+- **Multi-Device Credential Management**: Dukungan pendaftaran banyak perangkat biometrik per pengguna dengan kemampuan pencabutan hak akses (_revocation_) instan.
+- **Auto-Lock Lifecycle**: Penguncian otomatis berbasis durasi (Segera, 1m, 5m, 15m, 30m) serta penguncian instan saat jendela diminimize atau tab peramban disembunyikan.
+- **Audit Logging Terperinci**: Setiap operasi buka brankas, pendaftaran/pencabutan biometrik, dan pengubahan kredensial tercatat pada riwayat audit untuk transparansi pasangan.
 
-### 8. Progressive Web App (PWA)
+### 8. Mitigasi Skenario Pemisahan Hubungan & Harta Bersama
 
-- Instalasi langsung dari browser (Add to Home Screen) di Android, iOS, Windows, dan macOS.
-- Bekerja secara responsif dan fullscreen tanpa address bar browser.
+- **Halaman Simulasi Pembagian Harta Bersama (`/akun/harta-bersama`)**: Memfasilitasi perhitungan dan penyelesaian aset finansial secara transparan dan adil jika terjadi pemisahan hubungan.
+- **5 Metode Pembagian Harta**:
+  - ⚖️ **Bagi Rata (50% : 50%)**: Pembagian simetris separuh untuk masing-masing pihak.
+  - 📊 **Proporsional Kontribusi Riil**: Dihitung otomatis berdasarkan rekam jejak kontribusi nyata Suami vs Istri pada pos tabungan dan goals.
+  - 👨 **Sepenuhnya Milik Suami (100% : 0%)**: Penyerahan aset penuh ke pihak suami.
+  - 👩 **Sepenuhnya Milik Istri (0% : 100%)**: Penyerahan aset penuh ke pihak istri.
+  - ✏️ **Kustom Persentase Manual**: Fleksibilitas menentukan rasio pembagian sesuai kesepakatan bersama.
+- **Pembersihan Data Terisolasi (Clean Data Separation)**:
+  - Saat hubungan rumah tangga diputus (_unlink_), sistem membersihkan tagihan, anggaran, dan pos akun personal sehingga hanya data dengan kontribusi nyata dari pengguna yang dipertahankan.
+  - Mencegah data tagihan atau transaksi pribadi salah satu pasangan tertinggal di akun mantan pasangannya.
+
+### 9. Manajemen Sesi Multi-Perangkat & Proteksi Login
+
+- **Deteksi Login Ganda Terisolasi**: Jika perangkat ke-2 melakukan login pada akun yang sama, sistem secara aman mengakhiri sesi perangkat ke-1 (_force logout_) dengan notifikasi instruksi yang jelas demi mencegah konflik data.
+
+### 10. Progressive Web App (PWA) & Ergonomi UI Modern
+
+- **Instalasi PWA Native-like**: Dapat diinstal langsung ke homescreen di Android, iOS, Windows, dan macOS tanpa bilah navigasi peramban.
+- **Tata Letak & Spacing Berstandar**: Struktur kartu bagan berbalut padding ergonomis (`p-5 sm:p-6`) yang mencegah teks menyentuh garis tepi border, serta dialog modal PIN dan kredensial yang presisi di tengah layar (`m-auto`).
 
 ---
 
 ## 🛠 Teknologi & Stack Teknis (Tech Stack)
 
-| Kategori                    | Teknologi                                       | Deskripsi / Peran                                                              |
-| :-------------------------- | :---------------------------------------------- | :----------------------------------------------------------------------------- |
-| **Frontend Framework**      | **Nuxt 4 (v4.5.2)** + **Vue 3 (v3.5.41)**       | SSR/SPA modern berbasis Composition API dan file-based routing.                |
-| **Styling & Design**        | **Tailwind CSS (v3.4)** + **Plus Jakarta Sans** | Desain utility-first mobile responsif dengan warna dinamis & micro-animations. |
-| **Backend / Server Engine** | **Nitro (v2.13.4)**                             | Fullstack TypeScript server routes terintegrasi di dalam Nuxt.                 |
-| **Database & Auth**         | **Supabase (PostgreSQL 15)**                    | Relational database dengan Row Level Security (RLS) & Supabase Auth.           |
-| **Database ORM & Types**    | **Drizzle ORM (v0.45)** + **postgres.js**       | Type-safe SQL client dan query builder.                                        |
-| **Cloud Object Storage**    | **Cloudflare R2** via **AWS SDK S3**            | Penyimpanan gambar struk & avatar tanpa biaya transfer egress data.            |
-| **Artificial Intelligence** | **Google Gemini API (@google/generative-ai)**   | Multimodal AI Vision untuk OCR struk dan asisten keuangan interaktif.          |
-| **Local Offline Cache**     | **IndexedDB (`idb` v8)**                        | Penyimpanan lokal untuk cache struk, offline draft, dan enkripsi key.          |
-| **Kriptografi & Security**  | **Web Crypto API (AES-GCM-256)**                | Enkripsi end-to-end client-side untuk API Key dan data brankas rahasia.        |
-| **Pengujian & Otomasi**     | **Playwright (v1.62)**                          | Validasi end-to-end dan penangkapan tangkapan layar terotomasi.                |
+| Kategori                         | Teknologi                                                  | Deskripsi / Peran                                                              |
+| :------------------------------- | :--------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| **Frontend Framework**           | **Nuxt 4 (v4.5.2)** + **Vue 3 (v3.5.41)**                  | SSR/SPA modern berbasis Composition API dan file-based routing.                |
+| **Styling & Design**             | **Tailwind CSS (v3.4)** + **Plus Jakarta Sans**            | Desain utility-first mobile responsif dengan warna dinamis & micro-animations. |
+| **Backend / Server Engine**      | **Nitro (v2.13.4)**                                        | Fullstack TypeScript server routes terintegrasi di dalam Nuxt.                 |
+| **Database & Auth**              | **Supabase (PostgreSQL 15)**                               | Relational database dengan Row Level Security (RLS) & Supabase Auth.           |
+| **Database ORM & Types**         | **Drizzle ORM (v0.45)** + **postgres.js**                  | Type-safe SQL client dan query builder.                                        |
+| **Cloud Object Storage**         | **Cloudflare R2** via **AWS SDK S3**                       | Penyimpanan gambar struk & avatar tanpa biaya transfer egress data.            |
+| **Artificial Intelligence**      | **Google Gemini API (@google/generative-ai)**              | Multimodal AI Vision untuk OCR struk dan asisten keuangan interaktif.          |
+| **Autentikasi Biometrik (FIDO2)**| **SimpleWebAuthn (`@simplewebauthn/browser` & `server`)**  | FIDO2 WebAuthn untuk autentikasi Sidik Jari, Face ID, dan Windows Hello.       |
+| **Kriptografi & Hashing PIN**    | **Web Crypto API (AES-256-GCM) & PBKDF2 (100k rounds)**    | Zero-knowledge client-side encryption dan hashing PIN berkekuatan tinggi.      |
+| **Local Offline Cache**          | **IndexedDB (`idb` v8)**                                   | Penyimpanan lokal untuk cache struk, offline draft, dan master encryption key. |
+| **Pengujian & Otomasi**          | **Playwright (v1.62)** & **Vitest / Native Test Suites**   | Validasi end-to-end, penangkapan screenshot, dan verifikasi vault security.    |
 
 ---
 
@@ -186,6 +210,13 @@ graph TD
 5. Secara paralel (asinkron), foto struk diunggah ke bucket Cloudflare R2 tanpa mengunci respons OCR pengguna.
 6. Hasil ekstraksi dialirkan ke halaman review transaksi untuk dikonfirmasi dan disimpan ke Supabase PostgreSQL.
 
+### Alur Kriptografi Brankas & Autentikasi Biometrik (Vault Security Pipeline):
+
+1. **Registrasi Biometrik**: Klien meminta challenge WebAuthn ke `/api/security/webauthn/register/options`. Hardware autentikator (Windows Hello, Touch ID, Face ID) menghasilkan Public/Private Keypair lokal. Public Key disimpan ke tabel `user_biometric_credentials`, sedangkan Private Key tetap aman di dalam enclave hardware perangkat.
+2. **Buka Brankas (Unlock)**: Saat pengguna melakukan sensor biometrik atau memasukkan PIN (PBKDF2), klien memverifikasi kredensial ke `/api/security/*` dan menerima token sesi brankas bertanda tangan.
+3. **Dekripsi Sisi Klien**: Master Key didekripsi di browser lokal (Web Crypto AES-256-GCM). Data sandi didekripsi secara on-the-fly di memori peramban tanpa pernah mengirimkan teks sandi asli (plaintext) ke server.
+4. **Auto-Lock & Memory Wipe**: Setelah timeout tercapai atau saat aplikasi berpindah tab/minimize, kunci enkripsi di memori langsung dihapus (zeroed out) dan status kembali terkunci.
+
 ---
 
 ## 🗄 Skema Database Supabase PostgreSQL
@@ -208,6 +239,7 @@ erDiagram
     users ||--o{ transactions : "mencatat"
     users ||--o{ goals : "membuat"
     users ||--o{ vault_credentials : "pemilik"
+    users ||--o{ user_biometric_credentials : "memiliki perangkat biometrik"
     users ||--o| ai_user_settings : "konfigurasi ai"
 
     financial_accounts ||--o{ transactions : "sumber dana"
@@ -222,7 +254,7 @@ erDiagram
 1. **`households`**: Data entitas rumah tangga pasangan.
    - `id` (UUIDv7 PK), `name`, `invite_code` (Unique), `currency` (IDR), `period_start_day`, `motto`.
 2. **`users`**: Profil pengguna yang terhubung ke `auth.users`.
-   - `id` (UUIDv7 PK), `auth_user_id` (FK), `household_id` (FK), `role` (`suami` / `istri`), `full_name`, `email`, `avatar_object_key`, `biometric_enabled`, `theme`, `language`.
+   - `id` (UUIDv7 PK), `auth_user_id` (FK), `household_id` (FK), `role` (`suami` / `istri`), `full_name`, `email`, `avatar_object_key`, `biometric_enabled`, `theme`, `language`, `pin_hash`, `pin_salt`.
 3. **`financial_accounts`**: Rekening bank, dompet digital, kartu kredit, atau pinjaman.
    - `id`, `household_id`, `owner_type` (`suami`/`istri`/`bersama`), `account_type` (`bank`/`ewallet`/`cash`/`credit`/`debt`), `name`, `current_balance`, `initial_balance`, `account_number_masked`.
 4. **`categories`**: Kategori pengeluaran dan pemasukan.
@@ -235,10 +267,12 @@ erDiagram
    - `id`, `household_id`, `name`, `amount`, `due_date`, `is_recurring`, `recurrence_rule`, `status` (`pending`/`paid`), `linked_transaction_id`.
 8. **`goals`**: Target tabungan bersama.
    - `id`, `household_id`, `name`, `target_amount`, `target_date`, `partner_1_contribution`, `partner_2_contribution`, `status`.
-9. **`vault_credentials`**: Kredensial rahasia keluarga.
-   - `id`, `household_id`, `platform_name`, `username_masked`, `secret_encrypted`, `secret_encryption_iv`.
-10. **`ai_user_settings`**, **`ai_chat_sessions`**, **`ai_chat_messages`**: Riwayat interaksi asisten keuangan cerdas.
-11. **`audit_logs`**: Rekam jejak audit aktivitas rumah tangga untuk transparansi penuh kedua pasangan.
+9. **`vault_credentials`**: Kredensial rahasia keluarga terenkripsi AES-256-GCM.
+   - `id`, `household_id`, `owner_user_id`, `platform_type`, `platform_name`, `username_masked`, `secret_encrypted`, `secret_encryption_iv`, `encryption_version`, `encryption_algorithm`, `is_deleted`.
+10. **`user_biometric_credentials`**: Kredensial autentikator FIDO2 / WebAuthn per perangkat.
+    - `id`, `user_id`, `credential_id` (Unique text), `public_key` (BYTEA), `counter` (BIGINT), `device_type`, `aaguid`, `is_revoked`, `last_used_at`, `created_at`.
+11. **`ai_user_settings`**, **`ai_chat_sessions`**, **`ai_chat_messages`**: Riwayat interaksi asisten keuangan cerdas.
+12. **`audit_logs`**: Rekam jejak audit aktivitas rumah tangga, brankas, pencabutan biometrik, dan perubahan status untuk transparansi penuh kedua pasangan.
 
 ---
 
@@ -287,7 +321,8 @@ Seluruh endpoint server dibangun di atas arsitektur Nitro Server Routes yang ter
 - `POST /api/couple/generate-code`: Membuat 6-digit kode undangan rumah tangga.
 - `POST /api/couple/verify-code`: Memasukkan kode pasangan untuk bergabung ke household yang sama.
 - `PUT /api/couple/household`: Mengubah profil dan motto rumah tangga.
-- `POST /api/couple/unlink`: Memutus keterikatan household secara terisolasi dan aman.
+- `GET /api/couple/settlement`: Mengambil skenario simulasi pembagian harta bersama dan kontribusi riil pasangan.
+- `POST /api/couple/unlink`: Memutus keterikatan household secara terisolasi dengan mitigasi pembersihan data bersih.
 
 ### 8. Penyimpanan Cloudflare R2 (`/api/storage`)
 
@@ -301,18 +336,48 @@ Seluruh endpoint server dibangun di atas arsitektur Nitro Server Routes yang ter
 - `GET /api/goals` & `POST /api/goals`: Pengelolaan target impian tabungan.
 - `POST /api/goals/contribute`: Setoran kontribusi tabungan dari suami atau istri ke pos impian.
 
+### 10. Autentikasi Biometrik & Keamanan (`/api/security`)
+
+- `POST /api/security/webauthn/register/options`: Menghasilkan options challenge WebAuthn FIDO2 untuk pendaftaran perangkat.
+- `POST /api/security/webauthn/register/verify`: Memverifikasi attestation pendaftaran dan menyimpan public key perangkat.
+- `POST /api/security/webauthn/authenticate/options`: Menghasilkan challenge autentikasi biometrik.
+- `POST /api/security/webauthn/authenticate/verify`: Memverifikasi assertion biometrik dan menerbitkan signed vault authorization token.
+- `GET /api/security/webauthn/devices`: Mengambil daftar autentikator biometrik terdaftar milik pengguna.
+- `POST /api/security/webauthn/devices/revoke`: Mencabut akses biometrik perangkat yang hilang atau tidak digunakan lagi.
+- `POST /api/security/pin/set`: Mengatur atau memperbarui PIN keamanan cadangan dengan hash PBKDF2 100.000 iterasi.
+- `POST /api/security/pin/verify`: Memvalidasi PIN cadangan dan menerbitkan signed vault authorization token.
+
+### 11. Brankas Kredensial Keluarga (`/api/vault`)
+
+- `GET /api/vault`: Mengambil metadata kredensial dan ciphertext terenkripsi (server-side zero decryption).
+- `POST /api/vault`: Menyimpan item kredensial baru terenkripsi AES-256-GCM dari sisi klien.
+- `PUT /api/vault/[id]`: Memperbarui data kredensial terenkripsi.
+- `DELETE /api/vault/[id]`: Menghapus (soft delete) kredensial dari brankas keluarga.
+- `POST /api/vault/audit`: Mencatat log audit akses atau modifikasi brankas secara terstruktur.
+
 ---
 
-## 🔐 Keamanan & Privasi Tingkat Tinggi (Zero-Knowledge BYOK)
+## 🔐 Keamanan & Privasi Tingkat Tinggi (Zero-Knowledge, WebAuthn & BYOK)
 
-CoupleCash menerapkan prinsip **Privacy by Design**:
+CoupleCash dibangun berlandaskan arsitektur **Defense-in-Depth** dan prinsip **Privacy by Design**:
 
-1. **Model BYOK (Bring Your Own Key)**:
-   - Server tidak pernah menyimpan kunci Gemini API Anda secara permanen di database publik. Kunci dienkripsi menggunakan algoritma standar industri **AES-GCM 256-bit** dan disimpan di IndexedDB browser lokal Anda.
-2. **PostgreSQL Row Level Security (RLS)**:
-   - Seluruh tabel database diproteksi oleh kebijakan RLS berbasis `household_id`. Pasangan lain tidak akan pernah dapat melihat data keuangan keluarga Anda.
-3. **Data Masking**:
-   - Nomor rekening dan informasi sensitif disamarkan (_masked_) pada tampilan UI demi keamanan saat membuka aplikasi di tempat umum.
+1. **Arsitektur Brankas Zero-Knowledge (Client-Side AES-256-GCM)**:
+   - Enkripsi dan dekripsi kredensial rahasia keluarga dijalankan 100% pada peramban klien menggunakan Web Crypto API dengan IV acak 96-bit. Server CoupleCash hanya menerima ciphertext terenkripsi dan **tidak pernah memiliki akses atau kunci untuk mendekripsi isi brankas**.
+2. **Autentikasi Biometrik FIDO2 / WebAuthn**:
+   - Mendukung autentikator platform bawaan (Touch ID, Face ID, Windows Hello, Android Biometrics).
+   - **Zero Biometric Storage**: Server tidak pernah meminta, menerima, ataupun menyimpan data sidik jari atau wajah pengguna. Verifikasi identitas sepenuhnya dieksekusi secara aman oleh enclave perangkat keras lokal.
+3. **Proteksi PIN Cadangan Kuat (PBKDF2 100.000 Rounds)**:
+   - PIN cadangan 4–8 digit diproteksi menggunakan fungsi derivasi kunci **PBKDF2** (SHA-256) dengan 100.000 putaran bergaram unik (_salted_) sehingga kebal terhadap serangan brute-force dan tabel pelangi (_rainbow table_).
+4. **Model BYOK (Bring Your Own Key) untuk AI**:
+   - Kunci Google Gemini API dienkripsi AES-GCM 256-bit dan hanya disimpan di IndexedDB lokal browser pengguna. Server tidak menyimpan API key pengguna secara permanen di database publik.
+5. **PostgreSQL Row Level Security (RLS) & Isolasi Multi-Household**:
+   - Setiap baris data dalam database Supabase PostgreSQL diproteksi oleh kebijakan RLS ketat berbasis `household_id` dan `auth.uid()`. Pasangan dari rumah tangga lain tidak dapat melihat atau memodifikasi data keluarga Anda.
+6. **Auto-Lock Lifecycle & Session Memory Wipe**:
+   - Sesi brankas dilengkapi timer otomatis (Segera s/d 30 menit). Saat timeout tercapai atau saat aplikasi diminimize/berpindah tab, kunci dalam memori langsung dihapus (_memory wipe_) demi menjaga privasi visual.
+7. **Pengecualian Cache Service Worker (No-Store Policy)**:
+   - Service worker PWA dikonfigurasi untuk mengecualikan rute sensitif `/api/vault` dan `/api/security` serta mematuhi header `Cache-Control: no-store` demi mencegah kebocoran data terenkripsi ke penyimpanan cache offline browser.
+8. **Data Masking & Transparansi Sesi**:
+   - Nomor rekening, nomor kartu, dan data rahasia disamarkan (_masked_) pada antarmuka. Riwayat akses dan perubahan brankas tercatat pada audit log untuk keterbukaan penuh kedua pasangan.
 
 ---
 

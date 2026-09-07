@@ -80,33 +80,45 @@ async function handleConfirmUnlink() {
             </div>
           </div>
 
-          <!-- Notice for Next Feature: Penyesuaian Harta Bersama -->
-          <div class="bg-[#eef0ff] rounded-2xl p-3 text-left border border-[#dce0ff] flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 shadow-xs">
+          <!-- Notice: Penyesuaian Harta Bersama -->
+          <div class="bg-indigo-50/70 rounded-2xl p-3.5 text-left border border-indigo-100 flex items-start gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 shadow-xs mt-0.5">
               <span class="material-symbols-outlined text-[16px]">balance</span>
             </div>
-            <div class="text-[11px] text-slate-800 leading-tight">
-              <span class="font-bold">Penyesuaian Harta Bersama</span> dapat dilakukan setelah konfirmasi untuk pembagian aset yang adil.
+            <div class="text-[11.5px] text-slate-800 leading-snug">
+              <span class="font-bold text-indigo-950">Rekomendasi Pemisahan Adil:</span>
+              <p class="text-slate-600 mt-0.5">Gunakan fitur <strong>Harta Bersama</strong> untuk membagi Pos Akun &amp; Goals bersama secara transparan sebelum mengakhiri status keluarga.</p>
             </div>
           </div>
 
           <!-- Action Buttons -->
           <div class="pt-1.5 space-y-2">
-            <!-- Destructive Action -->
+            <!-- Go to Harta Bersama -->
+            <button
+              type="button"
+              class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-md shadow-indigo-100 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
+              @click="closeHouseholdUnlink(); navigateTo('/akun/harta-bersama')"
+            >
+              <span class="material-symbols-outlined text-[18px]">balance</span>
+              <span>Buka Harta Bersama (Disarankan)</span>
+            </button>
+
+            <!-- Direct Unlink Action -->
             <button
               type="button"
               :disabled="isUnlinking"
-              class="w-full py-3.5 px-4 bg-[#e11d48] hover:bg-rose-700 active:scale-[0.99] disabled:opacity-50 text-white font-bold rounded-2xl shadow-md shadow-rose-200 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
+              class="w-full py-3 px-4 bg-rose-50 hover:bg-rose-100 active:scale-[0.99] disabled:opacity-50 text-rose-700 font-bold rounded-2xl border border-rose-200 transition flex items-center justify-center gap-2 text-xs cursor-pointer"
               @click="handleConfirmUnlink"
             >
               <span v-if="isUnlinking" class="material-symbols-outlined animate-spin text-[16px]">refresh</span>
               <span v-else class="material-symbols-outlined text-[16px]">link_off</span>
-              <span>{{ isUnlinking ? 'Memproses...' : 'Putuskan Hubungan' }}</span>
+              <span>{{ isUnlinking ? 'Memproses...' : 'Putuskan Langsung Tanpa Bagi Aset' }}</span>
             </button>
+
             <!-- Cancel Action -->
             <button
               type="button"
-              class="w-full py-3.5 px-4 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 font-semibold rounded-2xl border border-slate-200 shadow-xs transition text-sm cursor-pointer"
+              class="w-full py-2.5 px-4 text-slate-500 hover:text-slate-700 font-semibold rounded-2xl transition text-xs cursor-pointer"
               @click="closeHouseholdUnlink"
             >
               Batal

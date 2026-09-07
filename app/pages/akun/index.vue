@@ -21,14 +21,14 @@ const displayName = computed(() => {
 
 const displayRole = computed(() => {
   if (!hasPartner.value) {
-    const roleLabel = currentUser.value?.role === 'suami' ? 'Suami' : 'Istri'
+    const roleLabel = currentUser.value?.role === 'suami' ? 'Suami' : currentUser.value?.role === 'istri' ? 'Istri' : 'Single'
     return `${currentUser.value?.fullName || 'Pengguna'} (${roleLabel})`
   }
   return `${suamiName.value} (Suami) & ${istriName.value} (Istri)`
 })
 
 const badgeText = computed(() => {
-  return hasPartner.value ? 'Household' : 'Single'
+  return hasPartner.value ? 'Berpasangan' : 'Single'
 })
 
 const householdName = computed(() => currentHousehold.value?.name || 'Keluarga')
@@ -47,32 +47,221 @@ function openPwaModal() {
   }
 }
 
-// ── Vault Data ──
-interface VaultItem {
-  id: string
-  bankName: string
-  name: string
-  user: string
-  owner: string
-  secret: string
+// ── Secure Vault & Biometric Engine ──
+const vault = useVault()
+const vaultSecurity = useVaultSecurity()
+const webAuthn = useWebAuthn()
+const { vaultState, secondsRemaining, revealedSecrets } = vaultSecurity
+
+const toastMessage = ref('')
+function showToast(msg: string) {
+  toastMessage.value = msg
+  setTimeout(() => { toastMessage.value = '' }, 3500)
 }
 
-const { getAuthToken } = useAuth()
-const vaultToken = import.meta.client ? await getAuthToken() : null
-const { data } = await useFetch('/api/vault', {
-  headers: vaultToken ? { Authorization: `Bearer ${vaultToken}` } : {}
+// PIN Unlock State
+const showPinModal = ref(false)
+const pinInput = ref('')
+const pinError = ref('')
+const isUnlocking = ref(false)
+
+// Add/Edit/Delete Vault Item State
+const showAddModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const selectedItem = ref<any>(null)
+const formPlatformType = ref<'bank' | 'e_wallet' | 'crypto_wallet' | 'lainnya'>('bank')
+const formPlatformName = ref('')
+const formUsername = ref('')
+const formSecret = ref('')
+const formOwnerUserId = ref('')
+const formShowSecret = ref(false)
+const formSubmitting = ref(false)
+const formError = ref('')
+
+onMounted(async () => {
+  await loadSettings()
+  await webAuthn.checkSupport()
 })
 
-const vaultItems = ref<VaultItem[]>(
-  ((data.value as any)?.items ?? []).map((i: VaultItem) => ({
-    ...i,
-    masked: true,
-    value: '•'.repeat(Math.min(i.secret.length, 16)),
-  }))
-)
+watch(activeTab, async (tab) => {
+  if (tab === 'vault' && vaultState.value === 'unlocked') {
+    await vault.fetchVaultItems()
+  }
+})
 
-function toggleVaultMask(item: any) {
-  item.masked = !item.masked
+async function handleUnlockBiometric() {
+  isUnlocking.value = true
+  try {
+    const ok = await vaultSecurity.unlockWithBiometric()
+    if (ok) {
+      await vault.fetchVaultItems()
+      showToast('Brankas berhasil dibuka dengan biometrik')
+    }
+  } catch (err: any) {
+    const msg = err?.data?.statusMessage || err?.message || 'Biometrik gagal. Silakan gunakan PIN.'
+    showToast(msg)
+    if (msg.includes('Belum ada perangkat') || msg.includes('tidak terdaftar')) {
+      setTimeout(() => {
+        openPinUnlock()
+      }, 500)
+    }
+  } finally {
+    isUnlocking.value = false
+  }
+}
+
+function openPinUnlock() {
+  pinInput.value = ''
+  pinError.value = ''
+  showPinModal.value = true
+}
+
+async function handleUnlockWithPin() {
+  if (!pinInput.value) {
+    pinError.value = 'Masukkan PIN terlebih dahulu'
+    return
+  }
+  isUnlocking.value = true
+  pinError.value = ''
+  try {
+    const ok = await vaultSecurity.unlockWithPin(pinInput.value)
+    if (ok) {
+      showPinModal.value = false
+      await vault.fetchVaultItems()
+      showToast('Brankas berhasil dibuka')
+    }
+  } catch (err: any) {
+    pinError.value = err?.data?.statusMessage || err?.message || 'PIN salah. Coba lagi.'
+  } finally {
+    isUnlocking.value = false
+  }
+}
+
+async function toggleRevealSecret(item: any) {
+  if (revealedSecrets.value[item.id]) {
+    vaultSecurity.hideSecret(item.id)
+  } else {
+    try {
+      await vaultSecurity.revealSecret(item.id, item.secretEncrypted, item.secretEncryptionIv, 15)
+    } catch (err: any) {
+      showToast('Gagal mendekripsi: ' + (err?.message || err))
+    }
+  }
+}
+
+async function handleCopySecret(item: any) {
+  try {
+    const ok = await vaultSecurity.copySecret(item.id, item.secretEncrypted, item.secretEncryptionIv)
+    if (ok) {
+      showToast('Sandi berhasil disalin ke clipboard!')
+    } else {
+      showToast('Gagal menyalin sandi')
+    }
+  } catch (err: any) {
+    showToast('Gagal menyalin: ' + (err?.message || err))
+  }
+}
+
+function openAddModal() {
+  formPlatformType.value = 'bank'
+  formPlatformName.value = ''
+  formUsername.value = ''
+  formSecret.value = ''
+  formOwnerUserId.value = currentUser.value?.id || ''
+  formShowSecret.value = false
+  formError.value = ''
+  showAddModal.value = true
+}
+
+async function handleSaveNewVault() {
+  if (!formPlatformName.value.trim()) {
+    formError.value = 'Nama platform wajib diisi'
+    return
+  }
+  if (!formSecret.value) {
+    formError.value = 'Kata sandi / PIN wajib diisi'
+    return
+  }
+  formSubmitting.value = true
+  formError.value = ''
+  try {
+    await vault.createVaultItem({
+      platformType: formPlatformType.value,
+      platformName: formPlatformName.value.trim(),
+      usernameMasked: formUsername.value.trim() || '-',
+      secretPlaintext: formSecret.value,
+      ownerUserId: formOwnerUserId.value || currentUser.value?.id,
+    })
+    showAddModal.value = false
+    showToast('Kredensial baru berhasil disimpan!')
+  } catch (err: any) {
+    formError.value = err?.message || 'Gagal menyimpan kredensial'
+  } finally {
+    formSubmitting.value = false
+  }
+}
+
+function openEditModal(item: any) {
+  selectedItem.value = item
+  formPlatformType.value = item.platformType || 'bank'
+  formPlatformName.value = item.platformName || ''
+  formUsername.value = item.usernameMasked !== '-' ? item.usernameMasked : ''
+  formSecret.value = '' // Leave blank so existing secret is kept unless user types new one
+  formOwnerUserId.value = item.ownerUserId || currentUser.value?.id || ''
+  formShowSecret.value = false
+  formError.value = ''
+  showEditModal.value = true
+}
+
+async function handleSaveEditVault() {
+  if (!selectedItem.value) return
+  if (!formPlatformName.value.trim()) {
+    formError.value = 'Nama platform wajib diisi'
+    return
+  }
+  formSubmitting.value = true
+  formError.value = ''
+  try {
+    await vault.updateVaultItem(selectedItem.value.id, {
+      platformType: formPlatformType.value,
+      platformName: formPlatformName.value.trim(),
+      usernameMasked: formUsername.value.trim() || '-',
+      newSecretPlaintext: formSecret.value || undefined,
+      ownerUserId: formOwnerUserId.value || undefined,
+    })
+    showEditModal.value = false
+    showToast('Kredensial berhasil diperbarui!')
+  } catch (err: any) {
+    formError.value = err?.message || 'Gagal memperbarui kredensial'
+  } finally {
+    formSubmitting.value = false
+  }
+}
+
+function confirmDeleteVault(item: any) {
+  selectedItem.value = item
+  showDeleteModal.value = true
+}
+
+async function handleDeleteVault() {
+  if (!selectedItem.value) return
+  formSubmitting.value = true
+  try {
+    await vault.deleteVaultItem(selectedItem.value.id)
+    showDeleteModal.value = false
+    showToast('Kredensial berhasil dihapus dari brankas')
+  } catch (err: any) {
+    showToast(err?.message || 'Gagal menghapus kredensial')
+  } finally {
+    formSubmitting.value = false
+  }
+}
+
+function formatCountdown(sec: number): string {
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 </script>
 
@@ -88,7 +277,7 @@ function toggleVaultMask(item: any) {
           <div class="avatar-dual avatar-dual--istri">{{ istriInitial }}</div>
         </div>
         <div v-else class="profile-avatars-single">
-          <div class="avatar-dual" :class="currentUser?.role === 'istri' ? 'avatar-dual--istri' : 'avatar-dual--suami'">
+          <div class="avatar-dual" :class="currentUser?.role === 'istri' ? 'avatar-dual--istri' : currentUser?.role === 'suami' ? 'avatar-dual--suami' : 'avatar-dual--single'">
             {{ userInitial }}
           </div>
         </div>
@@ -127,7 +316,7 @@ function toggleVaultMask(item: any) {
 
       <!-- Wallet Management -->
       <div class="menu-group">
-        <h3 class="menu-group-title">Pos Akun Finansial</h3>
+        <h3 class="menu-group-title">Pengaturan Umum</h3>
         <div class="menu-box">
           <NuxtLink to="/akun/kelola-akun" class="menu-item">
             <div class="menu-icon menu-icon--primary">
@@ -161,6 +350,17 @@ function toggleVaultMask(item: any) {
             </div>
             <span class="material-symbols-outlined menu-arrow">chevron_right</span>
           </NuxtLink>
+          <div class="menu-divider"></div>
+          <NuxtLink to="/akun/harta-bersama" class="menu-item">
+            <div class="menu-icon" style="background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)">
+              <span class="material-symbols-outlined">balance</span>
+            </div>
+            <div class="menu-text">
+              <span class="menu-label">Harta Bersama</span>
+              <span class="menu-sub font-metadata-xs">Kelola pemisahan Pos Akun dan Goals yang dimiliki bersama</span>
+            </div>
+            <span class="material-symbols-outlined menu-arrow">chevron_right</span>
+          </NuxtLink>
         </div>
       </div>
 
@@ -180,20 +380,16 @@ function toggleVaultMask(item: any) {
             </div>
             <span class="material-symbols-outlined menu-arrow">chevron_right</span>
           </NuxtLink>
-          <div class="menu-divider"></div>
-          <div class="menu-item">
-            <div class="menu-icon">
-              <span class="material-symbols-outlined">fingerprint</span>
+          <NuxtLink to="/akun/pengaturan/keamanan" class="menu-item">
+            <div class="menu-icon menu-icon--secondary">
+              <span class="material-symbols-outlined">security</span>
             </div>
             <div class="menu-text">
-              <span class="menu-label">Biometrik (Face ID / Sidik Jari)</span>
-              <span class="menu-sub font-metadata-xs">Proteksi saat membuka aplikasi</span>
+              <span class="menu-label">Keamanan &amp; Kunci Aplikasi</span>
+              <span class="menu-sub font-metadata-xs">Biometrik (WebAuthn), PIN &amp; Auto-Lock</span>
             </div>
-            <label class="switch">
-              <input type="checkbox" v-model="biometricsEnabled" />
-              <span class="slider"></span>
-            </label>
-          </div>
+            <span class="material-symbols-outlined menu-arrow">chevron_right</span>
+          </NuxtLink>
           <div class="menu-divider"></div>
           <NuxtLink to="#" class="menu-item">
             <div class="menu-icon">
@@ -227,51 +423,422 @@ function toggleVaultMask(item: any) {
       <p class="app-version">CoupleCash v2.1.0 (Build 492)</p>
     </div>
 
+    <!-- Toast Notification -->
+    <div v-if="toastMessage" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 py-2.5 px-4 rounded-2xl bg-slate-900/90 text-white text-xs font-semibold shadow-lg backdrop-blur-md flex items-center gap-2 animate-fade-in pointer-events-none">
+      <span class="material-symbols-outlined text-base text-emerald-400">check_circle</span>
+      <span>{{ toastMessage }}</span>
+    </div>
+
     <!-- TAB 2: VAULT KEAMANAN -->
     <div v-else-if="activeTab === 'vault'" class="tab-content animate-fade-in">
-      <div class="vault-hero">
-        <div class="vault-hero-icon">
-          <span class="material-symbols-outlined" style="font-size:32px;color:var(--primary);font-variation-settings:'FILL' 1">shield_lock</span>
+      
+      <!-- ── A. STATE TERKUNCI (LOCKED / EXPIRED) ── -->
+      <div v-if="vaultState === 'locked' || vaultState === 'expired'" class="vault-locked-card p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col items-center text-center gap-4 py-8">
+        <div class="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center relative">
+          <span class="material-symbols-outlined text-3xl" style="font-variation-settings:'FILL' 1">shield_lock</span>
+          <span v-if="vaultState === 'expired'" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold">
+            !
+          </span>
         </div>
-        <h2 class="vault-title">Vault Terenkripsi</h2>
-        <p class="vault-sub">Sandi platform &amp; PIN dompet tersimpan terenkripsi AES-256 at-rest.</p>
+
+        <div>
+          <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">
+            {{ vaultState === 'expired' ? 'Sesi Brankas Telah Berakhir' : 'Brankas Terkunci' }}
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto leading-relaxed">
+            Informasi sandi &amp; kredensial rahasia keluarga tersimpan dengan enkripsi end-to-end AES-256-GCM.
+          </p>
+        </div>
+
+        <div class="w-full flex flex-col gap-2.5 mt-2 max-w-xs">
+          <!-- Primary Biometric Unlock Button -->
+          <button
+            v-if="webAuthn.isPlatformAvailable"
+            class="w-full py-3.5 px-4 rounded-2xl bg-primary text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-50"
+            :disabled="isUnlocking"
+            @click="handleUnlockBiometric"
+          >
+            <span class="material-symbols-outlined text-lg">fingerprint</span>
+            <span>{{ isUnlocking ? 'Memverifikasi Biometrik...' : 'Buka dengan Biometrik' }}</span>
+          </button>
+
+          <!-- Fallback PIN Unlock Button -->
+          <button
+            class="w-full py-3 px-4 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+            @click="openPinUnlock"
+          >
+            <span class="material-symbols-outlined text-lg">pin</span>
+            <span>Gunakan PIN</span>
+          </button>
+
+          <NuxtLink
+            to="/akun/pengaturan/keamanan"
+            class="text-[11px] text-primary font-medium hover:underline text-center mt-1"
+          >
+            Atur Biometrik &amp; Kunci Aplikasi
+          </NuxtLink>
+        </div>
       </div>
 
-      <div class="vault-list">
-        <div v-for="item in vaultItems" :key="item.id" class="vault-card" :class="`vault-card--${item.owner}`">
-          <div class="vault-card-header">
-            <div class="vault-bank-icon" :class="`vault-bank-icon--${item.owner}`">
-              {{ item.bankName }}
-            </div>
+      <!-- ── B. STATE TERBUKA (UNLOCKED) ── -->
+      <div v-else class="flex flex-col gap-3">
+        <!-- Session Status Bar -->
+        <div class="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <div>
-              <h4 class="vault-item-name">{{ item.name }}</h4>
-              <p class="vault-item-user">User: {{ item.user }}</p>
+              <span class="text-xs font-bold text-emerald-900 dark:text-emerald-200">Brankas Terbuka</span>
+              <p class="text-[10px] text-emerald-700 dark:text-emerald-300">
+                Kunci otomatis dalam: <span class="font-mono font-bold">{{ formatCountdown(secondsRemaining) }}</span>
+              </p>
             </div>
-            <span class="vault-owner-badge" :class="`vault-owner-badge--${item.owner}`">
-              {{ item.owner === 'suami' ? 'Suami' : item.owner === 'istri' ? 'Istri' : 'Bersama' }}
+          </div>
+          <button
+            class="px-2.5 py-1 rounded-xl bg-emerald-200/60 dark:bg-emerald-800/60 hover:bg-emerald-300 text-emerald-900 dark:text-emerald-100 text-[11px] font-semibold transition-colors flex items-center gap-1"
+            @click="vaultSecurity.lockVault('manual')"
+          >
+            <span class="material-symbols-outlined text-sm">lock</span>
+            Kunci
+          </button>
+        </div>
+
+        <!-- Empty State -->
+        <div v-if="vault.items.length === 0 && !vault.loading" class="py-12 px-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center gap-2">
+          <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+            <span class="material-symbols-outlined text-2xl">folder_open</span>
+          </div>
+          <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Belum ada kredensial yang tersimpan</p>
+          <p class="text-[11px] text-slate-400 max-w-xs">Tambahkan sandi mobile banking, PIN e-wallet, atau kredensial rahasia keluarga Anda.</p>
+        </div>
+
+        <!-- Vault Items List -->
+        <div class="vault-list flex flex-col gap-2.5">
+          <div
+            v-for="item in vault.items"
+            :key="item.id"
+            class="vault-card"
+            :class="`vault-card--${item.owner}`"
+          >
+            <div class="vault-card-header flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="vault-bank-icon" :class="`vault-bank-icon--${item.owner}`">
+                  {{ item.bankName }}
+                </div>
+                <div>
+                  <h4 class="vault-item-name text-xs font-bold text-slate-900 dark:text-slate-100">{{ item.platformName }}</h4>
+                  <p class="vault-item-user text-[11px] text-slate-500 dark:text-slate-400">{{ item.usernameMasked }}</p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <span class="vault-owner-badge" :class="`vault-owner-badge--${item.owner}`">
+                  {{ item.owner === 'suami' ? 'Suami' : item.owner === 'istri' ? 'Istri' : 'Bersama' }}
+                </span>
+                <button
+                  class="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700/60 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center justify-center"
+                  title="Edit kredensial"
+                  @click="openEditModal(item)"
+                >
+                  <span class="material-symbols-outlined text-sm">edit</span>
+                </button>
+                <button
+                  class="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-500 hover:text-rose-700 flex items-center justify-center"
+                  title="Hapus kredensial"
+                  @click="confirmDeleteVault(item)"
+                >
+                  <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Secret Box with Temporary Reveal and Copy -->
+            <div class="vault-secret-box flex items-center justify-between p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800">
+              <div class="flex-1 min-w-0 pr-2">
+                <span class="vault-secret-label text-[10px] text-slate-400 uppercase tracking-wider block">Kata Sandi / PIN</span>
+                <div class="font-mono text-xs font-semibold tracking-wider truncate text-slate-900 dark:text-slate-100">
+                  <span v-if="revealedSecrets[item.id]">
+                    {{ revealedSecrets[item.id].secret }}
+                  </span>
+                  <span v-else class="text-slate-400 select-none">
+                    ••••••••••••••••
+                  </span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-1">
+                <button
+                  class="px-2 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                  :class="revealedSecrets[item.id] ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'"
+                  @click="toggleRevealSecret(item)"
+                  :title="revealedSecrets[item.id] ? 'Sembunyikan sandi' : 'Tampilkan sandi (15 detik)'"
+                >
+                  <span class="material-symbols-outlined text-xs">{{ revealedSecrets[item.id] ? 'visibility_off' : 'visibility' }}</span>
+                  <span>{{ revealedSecrets[item.id] ? 'Tutup' : 'Lihat' }}</span>
+                </button>
+
+                <button
+                  class="px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                  @click="handleCopySecret(item)"
+                  title="Salin ke clipboard"
+                >
+                  <span class="material-symbols-outlined text-xs">content_copy</span>
+                  <span>Salin</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="add-vault-btn" @click="openAddModal">
+          <span class="material-symbols-outlined text-lg">add_circle</span>
+          Tambah Kredensial Platform Baru
+        </button>
+      </div>
+    </div>
+
+    <!-- ── MODAL: PIN UNLOCK ── -->
+    <div v-if="showPinModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" @click.self="showPinModal = false">
+      <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col gap-4 animate-fade-in relative z-10 m-auto">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">pin</span>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Buka Brankas dengan PIN</h3>
+          </div>
+          <button class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500" @click="showPinModal = false">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <div v-if="pinError" class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+          {{ pinError }}
+        </div>
+
+        <div>
+          <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Masukkan 4-8 Digit PIN</label>
+          <input
+            v-model="pinInput"
+            type="password"
+            maxlength="8"
+            placeholder="••••••"
+            autofocus
+            class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-base font-mono text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-primary"
+            @keyup.enter="handleUnlockWithPin"
+          />
+        </div>
+
+        <div class="flex gap-2">
+          <button class="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50" @click="showPinModal = false">
+            Batal
+          </button>
+          <button
+            class="flex-1 py-3 rounded-xl bg-primary text-white text-xs font-semibold shadow-sm hover:opacity-95 disabled:opacity-50"
+            :disabled="isUnlocking"
+            @click="handleUnlockWithPin"
+          >
+            {{ isUnlocking ? 'Membuka...' : 'Buka Brankas' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MODAL: TAMBAH KREDENSIAL BRANKAS (CLIENT-SIDE ENCRYPTED) ── -->
+    <div v-if="showAddModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" @click.self="showAddModal = false">
+      <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col gap-3.5 max-h-[90vh] overflow-y-auto animate-fade-in relative z-10 m-auto">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">enhanced_encryption</span>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Tambah Kredensial Brankas</h3>
+          </div>
+          <button class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500" @click="showAddModal = false">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <div v-if="formError" class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+          {{ formError }}
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Jenis Platform</label>
+            <select
+              v-model="formPlatformType"
+              class="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="bank">Bank (BCA, Mandiri, BRI, BNI, dll)</option>
+              <option value="e_wallet">E-Wallet (GoPay, OVO, ShopeePay, Dana)</option>
+              <option value="crypto_wallet">Crypto Wallet / Investasi</option>
+              <option value="lainnya">Lainnya / Akun Layanan</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Nama Platform</label>
+            <input
+              v-model="formPlatformName"
+              type="text"
+              placeholder="Contoh: BCA Mobile, GoPay, Tokopedia"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Username / No. Rekening / Email</label>
+            <input
+              v-model="formUsername"
+              type="text"
+              placeholder="Contoh: a*****@gmail.com atau 1234567890"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Kata Sandi / PIN Rahasia</label>
+            <div class="relative">
+              <input
+                v-model="formSecret"
+                :type="formShowSecret ? 'text' : 'password'"
+                placeholder="Masukkan sandi atau PIN platform"
+                class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                type="button"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                @click="formShowSecret = !formShowSecret"
+              >
+                <span class="material-symbols-outlined text-lg">{{ formShowSecret ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            <span class="text-[10px] text-slate-400 mt-1 block">
+              * Dienkripsi dengan AES-256-GCM di browser sebelum dikirim ke server.
             </span>
           </div>
 
-          <div class="vault-secret-box">
-            <div>
-              <span class="vault-secret-label">Kata Sandi / PIN</span>
-              <div class="vault-secret-val tabular-nums" :class="{ 'vault-secret-val--blur': item.masked }">
-                {{ item.masked ? item.value : item.secret }}
-              </div>
-            </div>
-            <button class="vault-eye-btn" @click="toggleVaultMask(item)" :aria-label="item.masked ? 'Lihat sandi' : 'Sembunyikan sandi'">
-              <span class="material-symbols-outlined" style="font-size:18px">
-                {{ item.masked ? 'visibility' : 'visibility_off' }}
-              </span>
-            </button>
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Pemilik Akun</label>
+            <select
+              v-model="formOwnerUserId"
+              class="w-full px-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option :value="currentUser?.id">Saya Sendiri ({{ currentUser?.role === 'suami' ? 'Suami' : currentUser?.role === 'istri' ? 'Istri' : 'Pribadi' }})</option>
+              <option v-if="currentHousehold?.suami && currentHousehold?.suami.id !== currentUser?.id" :value="currentHousehold?.suami.id">Suami ({{ currentHousehold?.suami.fullName }})</option>
+              <option v-if="currentHousehold?.istri && currentHousehold?.istri.id !== currentUser?.id" :value="currentHousehold?.istri.id">Istri ({{ currentHousehold?.istri.fullName }})</option>
+            </select>
           </div>
         </div>
-      </div>
 
-      <button class="add-vault-btn">
-        <span class="material-symbols-outlined" style="font-size:20px">add</span>
-        Tambah Kredensial Platform Baru
-      </button>
+        <div class="flex gap-2 pt-2">
+          <button class="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50" @click="showAddModal = false">
+            Batal
+          </button>
+          <button
+            class="flex-1 py-3 rounded-xl bg-primary text-white text-xs font-semibold shadow-sm hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+            :disabled="formSubmitting"
+            @click="handleSaveNewVault"
+          >
+            <span class="material-symbols-outlined text-base">lock</span>
+            <span>{{ formSubmitting ? 'Mengenkripsi...' : 'Simpan Kredensial' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MODAL: EDIT KREDENSIAL BRANKAS ── -->
+    <div v-if="showEditModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" @click.self="showEditModal = false">
+      <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col gap-3.5 max-h-[90vh] overflow-y-auto animate-fade-in relative z-10 m-auto">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-2xl">edit_note</span>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Edit Kredensial Brankas</h3>
+          </div>
+          <button class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500" @click="showEditModal = false">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <div v-if="formError" class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs font-semibold">
+          {{ formError }}
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Nama Platform</label>
+            <input
+              v-model="formPlatformName"
+              type="text"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Username / No. Rekening / Email</label>
+            <input
+              v-model="formUsername"
+              type="text"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">Kata Sandi Baru (Opsional)</label>
+            <div class="relative">
+              <input
+                v-model="formSecret"
+                :type="formShowSecret ? 'text' : 'password'"
+                placeholder="Biarkan kosong jika tidak ingin mengubah sandi"
+                class="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <button
+                type="button"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                @click="formShowSecret = !formShowSecret"
+              >
+                <span class="material-symbols-outlined text-lg">{{ formShowSecret ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button class="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50" @click="showEditModal = false">
+            Batal
+          </button>
+          <button
+            class="flex-1 py-3 rounded-xl bg-primary text-white text-xs font-semibold shadow-sm hover:opacity-95 disabled:opacity-50"
+            :disabled="formSubmitting"
+            @click="handleSaveEditVault"
+          >
+            {{ formSubmitting ? 'Memperbarui...' : 'Simpan Perubahan' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MODAL: KONFIRMASI HAPUS KREDENSIAL ── -->
+    <div v-if="showDeleteModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" @click.self="showDeleteModal = false">
+      <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-sm border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col gap-4 text-center animate-fade-in relative z-10 m-auto">
+        <div class="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+          <span class="material-symbols-outlined text-2xl">delete_forever</span>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">Hapus Kredensial Ini?</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Kredensial untuk <strong>{{ selectedItem?.platformName }}</strong> akan dihapus dari brankas keluarga.
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50" @click="showDeleteModal = false">
+            Batal
+          </button>
+          <button
+            class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold disabled:opacity-50"
+            :disabled="formSubmitting"
+            @click="handleDeleteVault"
+          >
+            {{ formSubmitting ? 'Menghapus...' : 'Ya, Hapus' }}
+          </button>
+        </div>
+      </div>
     </div>
 
 
@@ -289,6 +856,7 @@ function toggleVaultMask(item: any) {
 .avatar-dual { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:white; border:3px solid var(--surface-container-low); }
 .avatar-dual--suami { background:var(--suami); margin-right:-16px; z-index:1; }
 .avatar-dual--istri { background:var(--istri); }
+.avatar-dual--single { background:var(--primary); }
 .profile-info { flex:1; }
 .profile-name { margin:0 0 2px; font-size:18px; font-weight:700; color:var(--on-surface); }
 .profile-role { margin:0 0 6px; font-size:12px; color:var(--muted); }

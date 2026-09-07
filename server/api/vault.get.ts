@@ -1,47 +1,65 @@
-import { getSupabaseAdmin } from '../utils/supabaseAdmin'
+import { getSupabaseAdmin, getUserFromToken } from '../utils/supabaseAdmin'
+import { setSensitiveSecurityHeaders } from '../utils/securityConfig'
 
 export default defineEventHandler(async (event) => {
+  setSensitiveSecurityHeaders(event)
   try {
     const authHeader = getHeader(event, 'Authorization')
+    const user = await getUserFromToken(authHeader)
+    if (!user) {
+      throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    }
+
     const admin = getSupabaseAdmin()
+    const { data: dbUser } = await admin
+      .from('users')
+      .select('id, household_id, role')
+      .eq('auth_user_id', user.id)
+      .single()
 
-    let householdId: string | null = null
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1]
-      const { data: { user } } = await admin.auth.getUser(token)
-      if (user) {
-        const { data: profile } = await admin.from('users').select('household_id').eq('auth_user_id', user.id).single()
-        householdId = profile?.household_id ?? null
-      }
-    }
-    if (!householdId) {
-      const { data: hh } = await admin.from('households').select('id').limit(1).single()
-      householdId = hh?.id ?? null
+    if (!dbUser?.household_id) {
+      throw createError({ statusCode: 403, statusMessage: 'User does not belong to an active household' })
     }
 
-    const { data: vaultData = [] } = await admin
+    const { data: vaultData = [], error } = await admin
       .from('vault_credentials')
-      .select('*, owner_user:users!vault_credentials_owner_user_id_fkey(id, role, full_name)')
+      .select('id, household_id, owner_user_id, platform_type, platform_name, username_masked, secret_encrypted, secret_encryption_iv, encryption_version, encryption_algorithm, created_at, updated_at, owner_user:users!vault_credentials_owner_user_id_fkey(id, role, full_name)')
+      .eq('household_id', dbUser.household_id)
       .eq('is_deleted', false)
-      .eq('household_id', householdId)
-      .order('created_at')
+      .order('created_at', { ascending: false })
 
+    if (error) {
+      console.error('[vault.get] db error:', error)
+      throw createError({ statusCode: 500, statusMessage: 'Gagal memuat kredensial brankas' })
+    }
+
+    // Return sanitized items with ciphertext and IV for client-side decrypt.
+    // SERVER NEVER DECRYPTS SECRET.
     const items = (vaultData ?? []).map((v: any) => ({
       id: v.id,
-      platformType: v.platform_type,
+      platformType: v.platform_type || 'bank',
+      platformName: v.platform_name || '',
       bankName: (v.platform_name || '?').charAt(0).toUpperCase(),
-      name: `${v.platform_name} (${v.owner_user?.role === 'suami' ? 'Suami' : 'Istri'})`,
-      user: v.username_masked || '-',
+      name: `${v.platform_name} (${v.owner_user?.role === 'suami' ? 'Suami' : v.owner_user?.role === 'istri' ? 'Istri' : 'Bersama'})`,
+      usernameMasked: v.username_masked || '-',
       owner: v.owner_user?.role || 'bersama',
-      secret: (() => {
-        try { return Buffer.from(v.secret_encrypted, 'base64').toString('utf-8') }
-        catch { return v.secret_encrypted }
-      })(),
+      ownerUserId: v.owner_user_id,
+      isOwner: v.owner_user_id === dbUser.id,
+      secretEncrypted: v.secret_encrypted,
+      secretEncryptionIv: v.secret_encryption_iv || '',
+      encryptionVersion: v.encryption_version || 1,
+      createdAt: v.created_at,
+      updatedAt: v.updated_at,
     }))
 
-    return { items }
+    return {
+      success: true,
+      items,
+    }
   } catch (err: any) {
+    if (err?.statusCode) throw err
     console.error('[vault.get] error:', err?.message ?? err)
     throw createError({ statusCode: 500, statusMessage: err?.message ?? 'Internal server error' })
   }
 })
+

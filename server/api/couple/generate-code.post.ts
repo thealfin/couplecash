@@ -9,17 +9,32 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
+    const body = await readBody(event).catch(() => ({}))
+    const { chosenRole } = body || {}
+
     const admin = getSupabaseAdmin()
 
     // 1. Get user profile
     const { data: profile, error: profErr } = await admin
       .from('users')
-      .select('id, household_id, full_name')
+      .select('id, household_id, role, full_name')
       .eq('auth_user_id', user.id)
       .single()
 
     if (profErr || !profile?.household_id) {
       throw createError({ statusCode: 404, statusMessage: 'Profil household tidak ditemukan' })
+    }
+
+    // Update role if chosenRole is provided and valid ('suami' | 'istri')
+    if (chosenRole && (chosenRole === 'suami' || chosenRole === 'istri')) {
+      const { error: roleUpdErr } = await admin
+        .from('users')
+        .update({ role: chosenRole, updated_at: new Date().toISOString() })
+        .eq('id', profile.id)
+
+      if (roleUpdErr) {
+        console.warn('[generate-code] update role error:', roleUpdErr)
+      }
     }
 
     // 2. Generate clean 6-digit numeric code

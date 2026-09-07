@@ -1,37 +1,56 @@
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin, getUserFromToken } from '../../utils/supabaseAdmin'
 
 export default defineEventHandler(async (event) => {
   try {
     const authHeader = getHeader(event, 'Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const user = await getUserFromToken(authHeader)
+
+    if (!user) {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
-    const token = authHeader.split(' ')[1]
+    const admin = getSupabaseAdmin()
 
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://fjgiolmwwpgxesbikjnp.supabase.co'
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqZ2lvbG13d3BneGVzYmlram5wIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODE0NzA0NCwiZXhwIjoyMTAzNzIzMDQ0fQ.ePKqWgCO6IMgv4mZn7MFeBswa4c8yajy2QxL0fc5Dpw'
-
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
-
-    if (error || !user) {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid token' })
-    }
-
-    // Get current user profile via Supabase REST API
-    const { data: currentUser, error: userError } = await supabaseAdmin
+    // Get current user profile
+    let { data: currentUser, error: userError } = await admin
       .from('users')
       .select('*, household:households(*)')
       .eq('auth_user_id', user.id)
       .single()
 
-    if (userError || !currentUser || !currentUser.household) {
+    if (userError || !currentUser) {
       throw createError({ statusCode: 404, statusMessage: 'User profile not found' })
     }
 
+    // Auto-heal missing household if user has no household or household was deleted
+    if (!currentUser.household_id || !currentUser.household) {
+      const invite = Math.floor(100000 + Math.random() * 900000).toString()
+      const { data: newHh, error: hhErr } = await admin
+        .from('households')
+        .insert({
+          name: `Keluarga ${currentUser.full_name?.split(' ')[0] || 'Saya'}`,
+          invite_code: invite,
+        })
+        .select()
+        .single()
+
+      if (!hhErr && newHh) {
+        await admin
+          .from('users')
+          .update({
+            household_id: newHh.id,
+            role: currentUser.role || 'single',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', currentUser.id)
+
+        currentUser.household_id = newHh.id
+        currentUser.household = newHh
+      }
+    }
+
     // Get all members in the household
-    const { data: members } = await supabaseAdmin
+    const { data: members } = await admin
       .from('users')
       .select('*')
       .eq('household_id', currentUser.household_id)
@@ -39,6 +58,7 @@ export default defineEventHandler(async (event) => {
     const membersList = members || []
     const suami = membersList.find((m: any) => m.role === 'suami')
     const istri = membersList.find((m: any) => m.role === 'istri')
+    const hasBothRoles = !!(suami && istri)
 
     return {
       success: true,
@@ -47,8 +67,11 @@ export default defineEventHandler(async (event) => {
         authUserId: currentUser.auth_user_id,
         email: currentUser.email,
         fullName: currentUser.full_name,
-        role: currentUser.role,
+        role: currentUser.role || 'single',
         avatarInitial: (currentUser.full_name || 'U').charAt(0).toUpperCase(),
+        activeDeviceId: currentUser.active_device_id || null,
+        activeDeviceName: currentUser.active_device_name || null,
+        lastActiveAt: currentUser.last_active_at || null,
       },
       household: {
         id: currentUser.household.id,
@@ -56,7 +79,7 @@ export default defineEventHandler(async (event) => {
         motto: currentUser.household.motto || '',
         inviteCode: currentUser.household.invite_code,
         createdAt: currentUser.household.created_at,
-        partnerStatus: (suami && istri) ? 'connected' : 'single',
+        partnerStatus: hasBothRoles ? 'connected' : 'single',
         suami: suami ? {
           id: suami.id,
           fullName: suami.full_name,

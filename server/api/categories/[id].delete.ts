@@ -20,8 +20,7 @@ export default defineEventHandler(async (event) => {
       }
     }
     if (!householdId) {
-      const { data: hh } = await admin.from('households').select('id').limit(1).single()
-      householdId = hh?.id ?? null
+      throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
     // 1. Check references in transactions

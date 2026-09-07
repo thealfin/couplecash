@@ -1,5 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  ssr: false,
   compatibilityDate: '2025-07-15',
   devtools: { enabled: false },
 
@@ -23,6 +24,20 @@ export default defineNuxtConfig({
     '/': { redirect: '/auth/login' },
     '/login': { redirect: '/auth/login' },
     '/register': { redirect: '/auth/register' },
+    '/api/vault/**': {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    },
+    '/api/security/**': {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    },
   },
 
   modules: ['@nuxtjs/tailwindcss'],

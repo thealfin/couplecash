@@ -23,11 +23,13 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: 'Profil pengguna tidak ditemukan' })
     }
 
+    const householdId = currentProfile.household_id
+
     // 2. Find partner in the same household
     const { data: members, error: membersErr } = await admin
       .from('users')
       .select('id, role, full_name, auth_user_id')
-      .eq('household_id', currentProfile.household_id)
+      .eq('household_id', householdId)
 
     if (membersErr) {
       throw createError({ statusCode: 500, statusMessage: 'Gagal mencari anggota keluarga' })
@@ -39,7 +41,46 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Tidak ada pasangan yang terhubung dalam household ini' })
     }
 
-    // 3. Create a new single household for the partner so they keep their own account and space
+    const body = await readBody(event).catch(() => ({}))
+    const { force = false } = body
+
+    // 3. Check for shared accounts & shared goals (Section Y)
+    const [
+      { count: sharedAccountsCount },
+      { count: sharedGoalsCount },
+    ] = await Promise.all([
+      admin
+        .from('financial_accounts')
+        .select('*', { count: 'exact', head: true })
+        .eq('household_id', householdId)
+        .eq('owner_type', 'bersama')
+        .eq('is_deleted', false)
+        .neq('account_type', 'debt')
+        .not('name', 'like', 'Goals (%'),
+      admin
+        .from('goals')
+        .select('*', { count: 'exact', head: true })
+        .eq('household_id', householdId)
+        .eq('owner_type', 'bersama')
+        .eq('status', 'active')
+        .eq('is_deleted', false),
+    ])
+
+    const totalShared = (sharedAccountsCount || 0) + (sharedGoalsCount || 0)
+
+    if (totalShared > 0 && !force) {
+      // Require settlement via Harta Bersama
+      return {
+        success: false,
+        requireSettlement: true,
+        sharedCount: totalShared,
+        sharedAccountsCount: sharedAccountsCount || 0,
+        sharedGoalsCount: sharedGoalsCount || 0,
+        message: 'Keluarga Anda memiliki Pos Akun atau Goals bersama. Silakan gunakan menu Harta Bersama untuk menyelesaikan pembagian secara adil.',
+      }
+    }
+
+    // 4. Create a new single household for the partner
     const randomCode = crypto.randomBytes(4).toString('hex')
     const { data: newHousehold, error: newHhErr } = await admin
       .from('households')
@@ -50,41 +91,104 @@ export default defineEventHandler(async (event) => {
       .select()
       .single()
 
-    if (newHhErr) {
+    if (newHhErr || !newHousehold) {
       throw createError({ statusCode: 500, statusMessage: 'Gagal membuat household baru untuk pasangan' })
     }
 
-    // 4. Move partner to their new independent household
-    // This detaches the partner from current household, while keeping current user in current household
-    // Data aset, transaksi individual, dan riwayat masing-masing tetap terjaga utuh!
-    const { error: moveErr } = await admin
+    // 5. Move partner to new household and reset both roles to 'single'
+    await admin
       .from('users')
-      .update({ household_id: newHousehold.id })
+      .update({
+        household_id: newHousehold.id,
+        role: 'single',
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', partner.id)
 
-    if (moveErr) {
-      throw createError({ statusCode: 500, statusMessage: 'Gagal melepaskan pasangan dari household' })
+    await admin
+      .from('users')
+      .update({
+        role: 'single',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', currentProfile.id)
+
+    await admin
+      .from('households')
+      .update({
+        name: `Keluarga ${currentProfile.full_name.split(' ')[0]}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', householdId)
+
+    // 6. Strict Data Separation: Transfer ONLY partner's personal elements to newHousehold
+    const partnerRole = partner.role
+
+    if (partnerRole) {
+      // Transfer partner's personal financial accounts
+      await admin
+        .from('financial_accounts')
+        .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+        .eq('household_id', householdId)
+        .eq('owner_type', partnerRole)
+
+      // Transfer partner's personal budgets
+      await admin
+        .from('budgets')
+        .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+        .eq('household_id', householdId)
+        .eq('owner_type', partnerRole)
+
+      // Transfer partner's personal categories
+      await admin
+        .from('categories')
+        .update({ household_id: newHousehold.id })
+        .eq('household_id', householdId)
+        .eq('applies_to', partnerRole)
+
+      // Transfer partner's personal bills
+      await admin
+        .from('bills')
+        .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+        .eq('household_id', householdId)
+        .eq('owner_type', partnerRole)
     }
 
-    // 5. Transfer partner's strictly individual accounts to their new household so they retain full control
+    // Transfer partner's personal goals (created by partner with 0 partner 1 contribution)
     await admin
-      .from('financial_accounts')
-      .update({ household_id: newHousehold.id })
-      .eq('household_id', currentProfile.household_id)
-      .eq('owner_type', partner.role)
-      .catch((e: any) => console.warn('[unlink] Warning moving partner individual accounts:', e))
+      .from('goals')
+      .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+      .eq('household_id', householdId)
+      .eq('created_by_user_id', partner.id)
 
-    // 6. Transfer partner's individual transactions
+    // Transfer partner's historical transactions (recorded by partner)
     await admin
       .from('transactions')
-      .update({ household_id: newHousehold.id })
-      .eq('household_id', currentProfile.household_id)
-      .eq('owner_type', partner.role)
-      .catch((e: any) => console.warn('[unlink] Warning moving partner individual transactions:', e))
+      .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+      .eq('household_id', householdId)
+      .eq('recorded_by_user_id', partner.id)
+
+    // Duplicate shared default categories to newHousehold so partner has independent categories
+    const { data: sharedCats = [] } = await admin
+      .from('categories')
+      .select('type, name, icon, color_token, is_default')
+      .eq('household_id', householdId)
+      .eq('applies_to', 'bersama')
+      .eq('is_deleted', false)
+
+    if (sharedCats.length > 0) {
+      await admin.from('categories').insert(
+        sharedCats.map((c: any) => ({
+          ...c,
+          household_id: newHousehold.id,
+          applies_to: 'bersama',
+        }))
+      )
+    }
 
     return {
       success: true,
-      message: 'Hubungan dengan pasangan berhasil diputuskan. Data pribadi tetap aman terjaga.',
+      message: 'Hubungan dengan pasangan berhasil diputuskan. Data pribadi masing-masing tetap aman terjaga.',
       partnerName: partner.full_name,
     }
   } catch (err: any) {

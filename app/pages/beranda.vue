@@ -61,7 +61,7 @@ interface DashboardData {
   }>
 }
 
-const token = import.meta.client ? await getAuthToken() : null
+const token = await getAuthToken()
 const { data, refresh } = await useFetch<DashboardData>('/api/dashboard', {
   headers: token ? { Authorization: `Bearer ${token}` } : {}
 })
@@ -69,6 +69,20 @@ const { data, refresh } = await useFetch<DashboardData>('/api/dashboard', {
 // Bills & Subscriptions data fetch
 const { data: billsResponse, refresh: refreshBills } = await useFetch<any>('/api/bills', {
   headers: token ? { Authorization: `Bearer ${token}` } : {}
+})
+
+// Re-fetch data when partner is linked/synced or hasPartner changes
+watch(hasPartner, async () => {
+  await Promise.all([refresh(), refreshBills()])
+})
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('couple-synced', () => {
+      refresh()
+      refreshBills()
+    })
+  }
 })
 
 const billTabFilter = ref<'pending' | 'paid'>('pending')

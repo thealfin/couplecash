@@ -10,12 +10,19 @@ export default defineEventHandler(async (event) => {
     }
 
     const body = await readBody(event)
-    const { code } = body || {}
+    const { code, myRole } = body || {}
 
     if (!code || typeof code !== 'string' || code.trim().length < 6) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Kode undangan harus terdiri dari 6 digit angka',
+      })
+    }
+
+    if (myRole && myRole !== 'suami' && myRole !== 'istri') {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Peran harus dipilih antara Suami atau Istri',
       })
     }
 
@@ -47,7 +54,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Check if target household is the same
+    // Check if target household is the same as current user's household
     if (targetHousehold.id === currentProfile.household_id) {
       throw createError({
         statusCode: 400,
@@ -75,46 +82,91 @@ export default defineEventHandler(async (event) => {
     const existingPartner = targetMembers?.[0]
     const oldHouseholdId = currentProfile.household_id
 
-    // 4. Reconcile role if conflicting
-    let assignedRole = currentProfile.role || 'istri'
-    if (existingPartner && existingPartner.role === currentProfile.role) {
-      assignedRole = currentProfile.role === 'suami' ? 'istri' : 'suami'
+    // 4. Role Assignment & Collision Rule
+    // "jadikan gagal jika 2 user memilih 1 role yang sama"
+    let chosenUserRole = myRole || currentProfile.role || 'suami'
+    let partnerNewRole = existingPartner?.role
+
+    if (existingPartner) {
+      // If partner already has a definitive role (suami or istri)
+      if (existingPartner.role === 'suami' || existingPartner.role === 'istri') {
+        if (chosenUserRole === existingPartner.role) {
+          const partnerRoleLabel = existingPartner.role === 'suami' ? 'Suami' : 'Istri'
+          const requiredRoleLabel = existingPartner.role === 'suami' ? 'Istri' : 'Suami'
+          throw createError({
+            statusCode: 400,
+            statusMessage: `Role tidak boleh sama! Pasangan Anda terdaftar sebagai ${partnerRoleLabel}. Anda harus memilih peran ${requiredRoleLabel}.`,
+          })
+        }
+      } else {
+        // Partner is currently 'single' -> partner gets opposite of chosenUserRole
+        partnerNewRole = chosenUserRole === 'suami' ? 'istri' : 'suami'
+        const { error: partnerUpdErr } = await admin
+          .from('users')
+          .update({
+            role: partnerNewRole,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingPartner.id)
+
+        if (partnerUpdErr) {
+          console.error('[verify-code] update partner role error:', partnerUpdErr)
+        }
+      }
     }
 
-    // 5. Update user to join target household
+    // 5. Update user to join target household with chosen role
     const { error: updateErr } = await admin
       .from('users')
       .update({
         household_id: targetHousehold.id,
-        role: assignedRole,
+        role: chosenUserRole,
         updated_at: new Date().toISOString(),
       })
       .eq('id', currentProfile.id)
 
     if (updateErr) {
       console.error('[verify-code] update user error:', updateErr)
-      throw createError({ statusCode: 500, statusMessage: 'Gagal menghubungkan ke keluarga target' })
+      throw createError({ statusCode: 500, statusMessage: 'Gagal menghubungkan ke keluarga target: ' + updateErr.message })
     }
 
-    // 6. Migrate current user's accounts, transactions, and budgets to target household
+    // 6. Migrate current user's accounts, transactions, budgets, categories, goals, bills
     if (oldHouseholdId) {
-      await admin
+      const { error: accErr } = await admin
         .from('financial_accounts')
         .update({ household_id: targetHousehold.id })
         .eq('household_id', oldHouseholdId)
-        .catch((e: any) => console.warn('[verify-code] move accounts error:', e))
+      if (accErr) console.warn('[verify-code] move accounts error:', accErr)
 
-      await admin
+      const { error: txErr } = await admin
         .from('transactions')
         .update({ household_id: targetHousehold.id })
         .eq('household_id', oldHouseholdId)
-        .catch((e: any) => console.warn('[verify-code] move transactions error:', e))
+      if (txErr) console.warn('[verify-code] move transactions error:', txErr)
 
-      await admin
+      const { error: bgErr } = await admin
         .from('budgets')
         .update({ household_id: targetHousehold.id })
         .eq('household_id', oldHouseholdId)
-        .catch((e: any) => console.warn('[verify-code] move budgets error:', e))
+      if (bgErr) console.warn('[verify-code] move budgets error:', bgErr)
+
+      const { error: catErr } = await admin
+        .from('categories')
+        .update({ household_id: targetHousehold.id })
+        .eq('household_id', oldHouseholdId)
+      if (catErr) console.warn('[verify-code] move categories error:', catErr)
+
+      const { error: goalErr } = await admin
+        .from('goals')
+        .update({ household_id: targetHousehold.id })
+        .eq('household_id', oldHouseholdId)
+      if (goalErr) console.warn('[verify-code] move goals error:', goalErr)
+
+      const { error: billErr } = await admin
+        .from('bills')
+        .update({ household_id: targetHousehold.id })
+        .eq('household_id', oldHouseholdId)
+      if (billErr) console.warn('[verify-code] move bills error:', billErr)
 
       // 7. Clean up orphan starter household if empty
       const { data: remainingUsers } = await admin
@@ -123,11 +175,11 @@ export default defineEventHandler(async (event) => {
         .eq('household_id', oldHouseholdId)
 
       if (!remainingUsers || remainingUsers.length === 0) {
-        await admin
+        const { error: delHhErr } = await admin
           .from('households')
           .delete()
           .eq('id', oldHouseholdId)
-          .catch((e: any) => console.warn('[verify-code] delete old household error:', e))
+        if (delHhErr) console.warn('[verify-code] delete old household error:', delHhErr)
       }
     }
 
@@ -137,20 +189,22 @@ export default defineEventHandler(async (event) => {
       const p2 = currentProfile.full_name.split(' ')[0]
       const combinedName = `Keluarga ${p1} & ${p2}`
 
-      await admin
+      const { error: nameErr } = await admin
         .from('households')
         .update({
           name: combinedName,
           updated_at: new Date().toISOString(),
         })
         .eq('id', targetHousehold.id)
-        .catch((e: any) => console.warn('[verify-code] update household name error:', e))
+      if (nameErr) console.warn('[verify-code] update household name error:', nameErr)
     }
 
     return {
       success: true,
       message: 'Berhasil menghubungkan akun dengan pasangan!',
       partnerName: existingPartner ? existingPartner.full_name : 'Pasangan',
+      myRole: chosenUserRole,
+      partnerRole: partnerNewRole || existingPartner?.role,
     }
   } catch (err: any) {
     if (err.statusCode) throw err

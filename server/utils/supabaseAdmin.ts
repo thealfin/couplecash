@@ -9,11 +9,22 @@ export function getSupabaseAdmin() {
 }
 
 export async function getUserFromToken(authHeader: string | undefined) {
-  if (!authHeader?.startsWith('Bearer ')) return null
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null
+  }
   const token = authHeader.split(' ')[1]
+  if (!token || token === 'null' || token === 'undefined') {
+    return null
+  }
   const admin = getSupabaseAdmin()
-  const { data: { user } } = await admin.auth.getUser(token)
-  return user
+  const { data, error } = await admin.auth.getUser(token)
+  if (error || !data?.user) {
+    if (error) {
+      console.warn('[getUserFromToken] getUser error:', error.message)
+    }
+    return null
+  }
+  return data.user
 }
 
 export function fmtRp(n: number): string {

@@ -20,13 +20,8 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    if (!householdId) {
-      const { data: hh } = await admin.from('households').select('id').limit(1).single()
-      householdId = hh?.id ?? null
-    }
-    if (!userId) {
-      const { data: u } = await admin.from('users').select('id').eq('household_id', householdId).limit(1).single()
-      userId = u?.id ?? null
+    if (!householdId || !userId) {
+      throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
     const body = await readBody(event)

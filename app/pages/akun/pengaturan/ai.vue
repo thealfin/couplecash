@@ -155,7 +155,7 @@ function handleResetAll() {
     </div>
 
     <!-- 1. Hero Status Card (BYOK) -->
-    <div class="card bg-white dark:bg-slate-900 rounded-2xl p-4.5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-3">
+    <div class="card bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col gap-3">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <div class="relative flex items-center justify-center">
@@ -207,7 +207,7 @@ function handleResetAll() {
     </div>
 
     <!-- 2. Gemini API Key Input Form -->
-    <div class="card bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+    <div class="card bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-indigo-600 dark:text-indigo-400 text-lg">vpn_key</span>
@@ -290,7 +290,7 @@ function handleResetAll() {
       <div class="grid grid-cols-1 gap-2.5">
         <!-- Option 1: Gemini 2.5 Flash -->
         <div
-          class="cursor-pointer w-full rounded-2xl p-4 flex flex-col gap-2 transition-all border select-none"
+          class="cursor-pointer w-full rounded-2xl p-5 flex flex-col gap-2 transition-all border select-none"
           :class="settings.model === 'gemini-2.5-flash' ? 'bg-indigo-50/60 border-indigo-500 dark:bg-indigo-950/40 dark:border-indigo-500 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'"
           @click="handleSelectModel('gemini-2.5-flash')"
         >
@@ -328,7 +328,7 @@ function handleResetAll() {
 
         <!-- Option 2: Gemini 2.5 Pro -->
         <div
-          class="cursor-pointer w-full rounded-2xl p-4 flex flex-col gap-2 transition-all border select-none"
+          class="cursor-pointer w-full rounded-2xl p-5 flex flex-col gap-2 transition-all border select-none"
           :class="settings.model === 'gemini-2.5-pro' ? 'bg-indigo-50/60 border-indigo-500 dark:bg-indigo-950/40 dark:border-indigo-500 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'"
           @click="handleSelectModel('gemini-2.5-pro')"
         >
@@ -369,9 +369,9 @@ function handleResetAll() {
     <!-- 4. Preprocessing & Ekstraksi Cerdas -->
     <div class="space-y-2">
       <label class="text-xs font-bold text-slate-900 dark:text-slate-100">Preprocessing &amp; Ekstraksi Cerdas</label>
-      <div class="card bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-sm">
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-sm">
         <!-- Toggle 1: Auto-Deskew -->
-        <div class="flex items-center justify-between p-3.5">
+        <div class="flex items-center justify-between p-4 sm:p-5">
           <div class="flex items-center gap-3 pr-2">
             <div class="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <span class="material-symbols-outlined text-lg">auto_fix_high</span>
@@ -392,7 +392,7 @@ function handleResetAll() {
         </div>
 
         <!-- Toggle 2: Deteksi Pajak -->
-        <div class="flex items-center justify-between p-3.5">
+        <div class="flex items-center justify-between p-4 sm:p-5">
           <div class="flex items-center gap-3 pr-2">
             <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
               <span class="material-symbols-outlined text-lg">receipt_long</span>
@@ -413,7 +413,7 @@ function handleResetAll() {
         </div>
 
         <!-- Toggle 3: Auto-Fallback -->
-        <div class="flex items-center justify-between p-3.5">
+        <div class="flex items-center justify-between p-4 sm:p-5">
           <div class="flex items-center gap-3 pr-2">
             <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
               <span class="material-symbols-outlined text-lg">sync_alt</span>
@@ -436,7 +436,7 @@ function handleResetAll() {
     </div>
 
     <!-- 5. Transparansi & Keamanan BYOK -->
-    <div class="card bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4.5 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
+    <div class="card bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 space-y-2.5">
       <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
         <span class="material-symbols-outlined text-indigo-500 text-base">shield</span>
         Transparansi &amp; Privasi BYOK (Bring Your Own Key)
@@ -478,3 +478,14 @@ function handleResetAll() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.card {
+  padding: 1.25rem;
+}
+@media (min-width: 640px) {
+  .card {
+    padding: 1.5rem;
+  }
+}
+</style>

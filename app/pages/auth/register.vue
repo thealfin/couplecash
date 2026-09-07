@@ -6,7 +6,7 @@ const router = useRouter()
 const { register: authRegister, loginWithGoogle } = useAuth()
 
 const fullName = ref('')
-const selectedRole = ref<'suami' | 'istri'>('suami')
+const selectedRole = ref<'suami' | 'istri' | 'single'>('single')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -133,6 +133,15 @@ function handleGoToLogin() {
         <div class="input-group">
           <label class="input-label">Peran Anda</label>
           <div class="role-toggle-grid">
+            <button
+              type="button"
+              class="role-toggle-btn role-toggle-btn--single"
+              :class="{ active: selectedRole === 'single' }"
+              @click="selectedRole = 'single'"
+            >
+              <span class="material-symbols-outlined text-[18px]">person</span>
+              <span>Single</span>
+            </button>
             <button
               type="button"
               class="role-toggle-btn role-toggle-btn--suami"
@@ -315,8 +324,8 @@ function handleGoToLogin() {
 
 .role-toggle-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
 .role-toggle-btn {
@@ -324,15 +333,22 @@ function handleGoToLogin() {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 12px;
+  padding: 10px 6px;
   border-radius: 14px;
   border: 1px solid var(--outline-variant);
   background: var(--surface-container-low);
   color: var(--on-surface-variant);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.role-toggle-btn--single.active {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
 .role-toggle-btn--suami.active {

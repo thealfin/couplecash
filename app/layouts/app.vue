@@ -1,8 +1,14 @@
 <script setup lang="ts">
-const { currentUser, hasPartner, openSyncModal, openHouseholdDetail } = useAuth()
+const { currentUser, currentHousehold, hasPartner, openSyncModal, openHouseholdDetail } = useAuth()
 
-const userInitial = computed(() => currentUser.value?.avatarInitial || 'B')
-const userRole = computed(() => currentUser.value?.role || 'suami')
+const userInitial = computed(() => currentUser.value?.avatarInitial || 'U')
+const userRole = computed(() => currentUser.value?.role || 'single')
+
+const partnerInitial = computed(() => {
+  if (userRole.value === 'suami') return currentHousehold.value?.istri?.initial || 'I'
+  if (userRole.value === 'istri') return currentHousehold.value?.suami?.initial || 'S'
+  return 'P'
+})
 
 const route = useRoute()
 const hideBottomNav = useState('hideBottomNav', () => false)
@@ -45,13 +51,13 @@ const showBottomNav = computed(() => {
           :title="hasPartner ? 'Detail Keluarga' : 'Singkronkan Pasangan'"
         >
           <!-- User avatar -->
-          <div :class="userRole === 'suami' ? 'avatar-suami' : 'avatar-istri'">
+          <div :class="userRole === 'suami' ? 'avatar-suami' : userRole === 'istri' ? 'avatar-istri' : 'avatar-single'">
             {{ userInitial }}
           </div>
 
           <!-- Partner avatar or + sync button -->
           <div v-if="hasPartner" :class="userRole === 'suami' ? 'avatar-istri' : 'avatar-suami'">
-            {{ userRole === 'suami' ? 'S' : 'B' }}
+            {{ partnerInitial }}
           </div>
           <button
             v-else
@@ -153,7 +159,7 @@ const showBottomNav = computed(() => {
   align-items: center;
 }
 
-.avatar-suami, .avatar-istri, .avatar-add-partner {
+.avatar-suami, .avatar-istri, .avatar-single, .avatar-add-partner {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -164,6 +170,12 @@ const showBottomNav = computed(() => {
   font-weight: 700;
   color: white;
   border: 2px solid var(--surface);
+}
+
+.avatar-single {
+  background: var(--primary);
+  margin-right: -8px;
+  z-index: 1;
 }
 
 .avatar-suami {

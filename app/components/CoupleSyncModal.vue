@@ -1,8 +1,19 @@
 <script setup lang="ts">
-const { isSyncModalOpen, closeSyncModal, syncPartner, getAuthToken, fetchProfile } = useAuth()
+const { isSyncModalOpen, closeSyncModal, syncPartner, getAuthToken, fetchProfile, currentUser } = useAuth()
 
 type Mode = 'options' | 'generate' | 'input'
 const mode = ref<Mode>('options')
+
+const chosenRole = ref<'suami' | 'istri'>('suami')
+
+// Initialize chosenRole from currentUser if already set
+watch(() => currentUser.value?.role, (newRole) => {
+  if (newRole === 'istri') {
+    chosenRole.value = 'istri'
+  } else {
+    chosenRole.value = 'suami'
+  }
+}, { immediate: true })
 
 const generatedCode = ref<string>('')
 const isGenerating = ref(false)
@@ -34,6 +45,7 @@ async function handleGenerateCode() {
     const res: any = await $fetch('/api/couple/generate-code', {
       method: 'POST',
       headers,
+      body: { chosenRole: chosenRole.value },
     })
     generatedCode.value = res?.code || '682941'
   } catch (err: any) {
@@ -87,6 +99,7 @@ async function handleVerifySync() {
 
   isVerifying.value = true
   errorMessage.value = ''
+  successMessage.value = ''
 
   try {
     const token = await getAuthToken()
@@ -94,7 +107,7 @@ async function handleVerifySync() {
     const res: any = await $fetch('/api/couple/verify-code', {
       method: 'POST',
       headers,
-      body: { code: pin },
+      body: { code: pin, myRole: chosenRole.value },
     })
 
     if (res?.success) {
@@ -105,7 +118,10 @@ async function handleVerifySync() {
       setTimeout(() => {
         syncPartner(pin)
         resetModal()
-      }, 1200)
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('couple-synced'))
+        }
+      }, 1500)
     } else {
       errorMessage.value = res?.message || 'Kode undangan tidak valid'
     }
@@ -239,6 +255,31 @@ function resetModal() {
                 <span>{{ errorMessage }}</span>
               </div>
 
+              <!-- Role Selector for Generator -->
+              <div class="role-selection-box mb-4">
+                <p class="role-selection-label">Peran Anda dalam Keluarga:</p>
+                <div class="role-selector-pills">
+                  <button
+                    type="button"
+                    class="role-pill-btn"
+                    :class="{ 'role-pill-btn--active-suami': chosenRole === 'suami' }"
+                    @click="chosenRole = 'suami'; handleGenerateCode()"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">face</span>
+                    <span>Suami</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="role-pill-btn"
+                    :class="{ 'role-pill-btn--active-istri': chosenRole === 'istri' }"
+                    @click="chosenRole = 'istri'; handleGenerateCode()"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">face_3</span>
+                    <span>Istri</span>
+                  </button>
+                </div>
+              </div>
+
               <!-- Big OTP Display Box -->
               <div class="otp-card">
                 <div v-if="isGenerating" class="flex items-center justify-center gap-2 py-4 text-[var(--muted)]">
@@ -282,6 +323,31 @@ function resetModal() {
               <div v-if="successMessage" class="alert-box alert-box--success">
                 <span class="material-symbols-outlined text-[18px]">check_circle</span>
                 <span>{{ successMessage }}</span>
+              </div>
+
+              <!-- Role Selector for Inputter -->
+              <div class="role-selection-box mb-4">
+                <p class="role-selection-label">Pilih Peran Anda:</p>
+                <div class="role-selector-pills">
+                  <button
+                    type="button"
+                    class="role-pill-btn"
+                    :class="{ 'role-pill-btn--active-suami': chosenRole === 'suami' }"
+                    @click="chosenRole = 'suami'"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">face</span>
+                    <span>Suami</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="role-pill-btn"
+                    :class="{ 'role-pill-btn--active-istri': chosenRole === 'istri' }"
+                    @click="chosenRole = 'istri'"
+                  >
+                    <span class="material-symbols-outlined text-[18px]">face_3</span>
+                    <span>Istri</span>
+                  </button>
+                </div>
               </div>
 
               <!-- 6 Digit PIN Boxes -->
@@ -759,6 +825,55 @@ function resetModal() {
 .alert-box--success {
   background: #dcfce7;
   color: #166534;
+}
+
+/* Role Pills */
+.role-selection-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.role-selection-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--on-surface, #0f172a);
+  margin: 0;
+}
+.role-selector-pills {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+}
+.role-pill-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--outline-variant, #cbd5e1);
+  background: var(--surface-container-lowest, #ffffff);
+  color: var(--on-surface-variant, #475569);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.role-pill-btn--active-suami {
+  border-color: #2563eb !important;
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+.role-pill-btn--active-istri {
+  border-color: #ec4899 !important;
+  background: #fdf2f8 !important;
+  color: #ec4899 !important;
+  box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.25);
 }
 
 /* Animations */

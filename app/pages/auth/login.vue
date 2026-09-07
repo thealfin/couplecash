@@ -3,7 +3,7 @@ definePageMeta({ layout: 'auth' })
 useHead({ title: 'Masuk — CoupleCash' })
 
 const router = useRouter()
-const { login: authLogin, loginWithGoogle } = useAuth()
+const { login: authLogin, loginWithGoogle, sessionKickedMessage } = useAuth()
 
 const email = ref('')
 const password = ref('')
@@ -77,6 +77,11 @@ async function handleGoogleLogin() {
 
       <!-- Form Box -->
       <div class="form-box">
+        <div v-if="sessionKickedMessage" class="warning-banner">
+          <span class="material-symbols-outlined text-[20px] text-amber-600">phonelink_erase</span>
+          <span>{{ sessionKickedMessage }}</span>
+        </div>
+
         <div v-if="errorMessage" class="error-banner">
           <span class="material-symbols-outlined text-[18px]">error</span>
           <span>{{ errorMessage }}</span>
@@ -197,6 +202,20 @@ async function handleGoogleLogin() {
 .eye-toggle-btn:hover { color: var(--on-surface); }
 
 .eye-toggle-btn:hover { color: var(--on-surface); }
+
+.warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  color: #92400e;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
 
 .error-banner {
   display: flex;

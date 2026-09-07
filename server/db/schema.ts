@@ -1,6 +1,6 @@
 import {
   pgTable, pgEnum, uuid, varchar, text, numeric, boolean,
-  timestamp, date, time, smallint, jsonb, uniqueIndex, index, check,
+  timestamp, date, time, smallint, bigint, jsonb, uniqueIndex, index, check,
 } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
 import { uuidV7PrimaryKey } from './helpers';
@@ -185,14 +185,36 @@ export const vaultCredentials = pgTable('vault_credentials', {
   householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
   ownerUserId: uuid('owner_user_id').notNull().references(() => users.id),
   platformType: vaultPlatformTypeEnum('platform_type').notNull().default('bank'),
-  platformName: varchar('platform_name', { length: 100 }).notNull(),
-  usernameMasked: varchar('username_masked', { length: 100 }),
+  platformName: varchar('platform_name', { length: 150 }).notNull(),
+  usernameMasked: varchar('username_masked', { length: 150 }),
   secretEncrypted: text('secret_encrypted').notNull(),
+  secretEncryptionIv: varchar('secret_encryption_iv', { length: 64 }),
+  encryptionVersion: smallint('encryption_version').notNull().default(1),
+  encryptionAlgorithm: varchar('encryption_algorithm', { length: 30 }).notNull().default('AES-GCM-256'),
   isDeleted: boolean('is_deleted').notNull().default(false),
+  lastViewedAt: timestamp('last_viewed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   householdIdx: index('idx_vault_household').on(table.householdId),
+  householdDeletedIdx: index('idx_vault_household_deleted').on(table.householdId, table.isDeleted),
+}));
+
+export const userBiometricCredentials = pgTable('user_biometric_credentials', {
+  id: uuidV7PrimaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  credentialId: text('credential_id').notNull().unique(),
+  publicKey: text('public_key').notNull(),
+  counter: bigint('counter', { mode: 'number' }).notNull().default(0),
+  transports: jsonb('transports'),
+  deviceType: text('device_type'),
+  backedUp: boolean('backed_up').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+}, (table) => ({
+  userIdx: index('idx_biometric_user').on(table.userId),
+  credentialIdx: index('idx_biometric_credential').on(table.credentialId),
 }));
 
 // ── Relations ──
@@ -213,6 +235,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   transactions: many(transactions),
   goals: many(goals),
   vaultCredentials: many(vaultCredentials),
+  biometricCredentials: many(userBiometricCredentials),
 }));
 
 export const financialAccountsRelations = relations(financialAccounts, ({ one, many }) => ({
@@ -289,10 +312,14 @@ export const auditLogs = pgTable('audit_logs', {
   userId: uuid('user_id').references(() => users.id),
   entityType: varchar('entity_type', { length: 50 }).notNull(),
   entityId: uuid('entity_id').notNull(),
-  action: varchar('action', { length: 20 }).notNull(),
+  action: varchar('action', { length: 60 }).notNull(),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const userBiometricCredentialsRelations = relations(userBiometricCredentials, ({ one }) => ({
+  user: one(users, { fields: [userBiometricCredentials.userId], references: [users.id] }),
+}));
 
 // ── Extended Relations ──
 

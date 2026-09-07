@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
     const authHeader = getHeader(event, 'Authorization')
     const admin = getSupabaseAdmin()
 
-    // Get auth user from token (optional - dashboard is accessed after login)
+    // Get auth user from token
     let householdId: string | null = null
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1]
@@ -16,10 +16,8 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // If no auth, get the first household (for dev convenience)
     if (!householdId) {
-      const { data: hh } = await admin.from('households').select('id').limit(1).single()
-      householdId = hh?.id ?? null
+      throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
     // ── Financial accounts ──

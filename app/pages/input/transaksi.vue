@@ -44,7 +44,7 @@ interface PendingBillItem {
   status: string
 }
 
-const userRole = computed<'suami' | 'istri'>(() => currentUser.value?.role || 'suami')
+const userRole = computed<'suami' | 'istri' | 'single'>(() => currentUser.value?.role || 'suami')
 
 const type = ref<'expense' | 'income'>('expense')
 const rawAmount = ref<number>(0)
@@ -144,7 +144,7 @@ const availableAccounts = computed(() => {
 
 const category = ref('')
 const account = ref('')
-const owner = ref<'suami' | 'istri' | 'bersama'>('suami')
+const owner = ref<'suami' | 'istri' | 'bersama' | 'sendiri'>('suami')
 
 // Tax state
 const rawTaxAmount = ref<number>(0)
@@ -193,7 +193,8 @@ watch(category, (newCat) => {
 watch(
   userRole,
   (role) => {
-    if (role) owner.value = role
+    if (role === 'single') owner.value = 'sendiri'
+    else if (role) owner.value = role
   },
   { immediate: true }
 )
@@ -719,6 +720,20 @@ async function handleSubmit() {
           <span>Istri</span>
         </button>
 
+        <!-- Sendiri button (shown if userRole is single) -->
+        <button
+          v-if="userRole === 'single'"
+          type="button"
+          class="owner-card-btn"
+          :class="{ 'owner-card-btn--sendiri': owner === 'sendiri' }"
+          @click="owner = 'sendiri'"
+        >
+          <div class="avatar-badge avatar-badge--sendiri">
+            <span class="material-symbols-outlined text-[18px]">person</span>
+          </div>
+          <span>Sendiri</span>
+        </button>
+
         <!-- Bersama button (shown ONLY if hasPartner is true) -->
         <button
           v-if="hasPartner"
@@ -1229,6 +1244,7 @@ async function handleSubmit() {
 .avatar-badge--suami { background: var(--suami); }
 .avatar-badge--istri { background: var(--istri); }
 .avatar-badge--bersama { background: var(--primary); }
+.avatar-badge--sendiri { background: #6366f1; }
 
 .owner-card-btn--suami {
   border-color: var(--suami);
@@ -1246,6 +1262,12 @@ async function handleSubmit() {
   border-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 12%, transparent);
   color: var(--primary);
+}
+
+.owner-card-btn--sendiri {
+  border-color: #6366f1;
+  background: color-mix(in srgb, #6366f1 12%, transparent);
+  color: #6366f1;
 }
 
 .submit-btn {

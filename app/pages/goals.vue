@@ -688,7 +688,7 @@ onUnmounted(() => {
           @click="openCreateModal"
         >
           <span class="material-symbols-outlined text-[20px]">add_circle</span>
-          <span>+ Buat Goals Baru</span>
+          <span>Buat Goals Baru</span>
         </button>
       </div>
 

@@ -2,17 +2,23 @@ import { getSupabaseAdmin, fmtRp, getMonthRange } from '../utils/supabaseAdmin'
 
 export default defineEventHandler(async (event) => {
   try {
+    setHeader(event, 'Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    setHeader(event, 'Pragma', 'no-cache')
+    setHeader(event, 'Expires', '0')
+
     const authHeader = getHeader(event, 'Authorization')
     const admin = getSupabaseAdmin()
 
     // Get auth user from token
     let householdId: string | null = null
+    let currentUserProfile: any = null
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1]
       const { data: { user } } = await admin.auth.getUser(token)
       if (user) {
-        const { data: profile } = await admin.from('users').select('household_id').eq('auth_user_id', user.id).single()
+        const { data: profile } = await admin.from('users').select('household_id, role, full_name').eq('auth_user_id', user.id).single()
         householdId = profile?.household_id ?? null
+        currentUserProfile = profile
       }
     }
 
@@ -37,7 +43,7 @@ export default defineEventHandler(async (event) => {
       .filter((a: any) => Number(a.current_balance) > 0)
       .reduce((s: number, a: any) => s + Number(a.current_balance), 0)
 
-    const breakdown = { suami: 0, istri: 0, bersama: 0 }
+    const breakdown = { suami: 0, istri: 0, bersama: 0, sendiri: 0 }
     for (const a of assetAccounts) {
       const bal = Number(a.current_balance)
       if (bal > 0 && a.owner_type in breakdown) {
@@ -151,7 +157,9 @@ export default defineEventHandler(async (event) => {
           ? `${suamiFirst || 'Suami'} (Suami)`
           : a.owner_type === 'istri'
             ? `${istriFirst || 'Istri'} (Istri)`
-            : 'Akun Bersama',
+            : a.owner_type === 'sendiri'
+              ? 'Akun Pribadi'
+              : 'Akun Bersama',
         balance: Number(a.current_balance),
         balanceText: fmtRp(Number(a.current_balance)),
         number: a.account_number_masked,
@@ -164,7 +172,13 @@ export default defineEventHandler(async (event) => {
           balance: Number(a.current_balance),
           balanceText: fmtRp(Number(a.current_balance)),
           ownerType: a.owner_type,
-          ownerLabel: a.owner_type === 'suami' ? `${suamiFirst || 'Suami'} (Suami)` : a.owner_type === 'istri' ? `${istriFirst || 'Istri'} (Istri)` : 'Akun Bersama',
+          ownerLabel: a.owner_type === 'suami'
+            ? `${suamiFirst || 'Suami'} (Suami)`
+            : a.owner_type === 'istri'
+              ? `${istriFirst || 'Istri'} (Istri)`
+              : a.owner_type === 'sendiri'
+                ? 'Akun Pribadi'
+                : 'Akun Bersama',
         })),
       transactions: (txs ?? []).map((t: any) => ({
         id: t.id,
@@ -174,6 +188,7 @@ export default defineEventHandler(async (event) => {
         amountText: (t.type === 'income' ? '+' : '-') + fmtRp(Number(t.amount)),
         type: t.type,
         owner: t.owner_type,
+        previousRole: t.previous_role || null,
       })),
     }
   } catch (err: any) {

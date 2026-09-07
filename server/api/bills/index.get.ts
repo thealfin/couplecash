@@ -2,25 +2,27 @@ import { getSupabaseAdmin, fmtRp } from '../../utils/supabaseAdmin'
 
 export default defineEventHandler(async (event) => {
   try {
+    setHeader(event, 'Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    setHeader(event, 'Pragma', 'no-cache')
+    setHeader(event, 'Expires', '0')
+
     const authHeader = getHeader(event, 'Authorization')
     const admin = getSupabaseAdmin()
 
     let householdId: string | null = null
+    let userRole: string | null = null
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1]
       const { data: { user } } = await admin.auth.getUser(token)
       if (user) {
-        const { data: profile } = await admin.from('users').select('household_id').eq('auth_user_id', user.id).single()
+        const { data: profile } = await admin.from('users').select('household_id, role').eq('auth_user_id', user.id).single()
         householdId = profile?.household_id ?? null
+        userRole = profile?.role ?? null
       }
     }
 
     if (!householdId) {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-    }
-
-    if (!householdId) {
-      throw createError({ statusCode: 404, statusMessage: 'Rumah tangga tidak ditemukan' })
     }
 
     // Query bills
@@ -97,7 +99,7 @@ export default defineEventHandler(async (event) => {
         urgencyLevel,
         badgeText,
         ownerType: bill.owner_type,
-        ownerLabel: bill.owner_type === 'suami' ? 'Suami' : bill.owner_type === 'istri' ? 'Istri' : 'Bersama',
+        ownerLabel: bill.owner_type === 'suami' ? 'Suami' : bill.owner_type === 'istri' ? 'Istri' : bill.owner_type === 'sendiri' ? 'Sendiri' : 'Bersama',
         status: bill.status,
         isRecurring: bill.is_recurring,
         recurrenceRule: bill.recurrence_rule,

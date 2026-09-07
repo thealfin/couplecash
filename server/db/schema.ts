@@ -5,9 +5,9 @@ import {
 import { sql, relations } from 'drizzle-orm';
 import { uuidV7PrimaryKey } from './helpers';
 
-export const roleTypeEnum = pgEnum('role_type', ['suami', 'istri']);
+export const roleTypeEnum = pgEnum('role_type', ['suami', 'istri', 'single']);
 export const accountTypeEnum = pgEnum('account_type', ['bank', 'e_wallet', 'deposito', 'cash', 'debt', 'crypto']);
-export const ownershipTypeEnum = pgEnum('ownership_type', ['suami', 'istri', 'bersama']);
+export const ownershipTypeEnum = pgEnum('ownership_type', ['suami', 'istri', 'bersama', 'sendiri']);
 export const transactionTypeEnum = pgEnum('transaction_type', ['income', 'expense', 'goals', 'debt']);
 export const transactionSourceEnum = pgEnum('transaction_source', ['manual', 'ai_scan']);
 export const budgetPeriodEnum = pgEnum('budget_period', ['mingguan', 'bulanan', 'berkala']);
@@ -102,6 +102,7 @@ export const transactions = pgTable('transactions', {
   transactionTime: time('transaction_time').notNull().default(sql`current_time`),
   merchantName: varchar('merchant_name', { length: 200 }),
   note: text('note'),
+  previousRole: varchar('previous_role', { length: 30 }),
   source: transactionSourceEnum('source').notNull().default('manual'),
   receiptObjectKey: text('receipt_object_key'),
   receiptStorage: storageProviderEnum('receipt_storage').default('cloudflare_r2'),

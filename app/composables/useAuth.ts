@@ -155,6 +155,9 @@ export function useAuth() {
         },
       })
       if (res?.success) {
+        // Clear previous user's Nuxt payload cache to avoid data leakage
+        clearNuxtData()
+
         currentUser.value = res.user
         currentHousehold.value = res.household
         hasPartner.value = !!(res.household.suami && res.household.istri)
@@ -327,11 +330,19 @@ export function useAuth() {
     hasPartner.value = false
     currentToken.value = null
     authCookie.value = null
+
+    // Clear Nuxt in-memory state and payload cache
+    clearNuxtData()
+
     if (import.meta.client) {
       localStorage.removeItem('couplecash-token')
       try {
         useVaultSecurity().lockVault('logout')
       } catch {}
+      if ('caches' in window) {
+        caches.delete('couplecash-dynamic-v2').catch(() => {})
+        caches.delete('couplecash-dynamic-v3').catch(() => {})
+      }
     }
   }
 
@@ -472,5 +483,6 @@ export function useAuth() {
     unlinkPartner,
     toggleBalanceVisibility,
     getAuthToken,
+    currentToken,
   }
 }

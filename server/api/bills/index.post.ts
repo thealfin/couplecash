@@ -6,21 +6,19 @@ export default defineEventHandler(async (event) => {
     const admin = getSupabaseAdmin()
 
     let householdId: string | null = null
+    let userRole: string | null = null
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1]
       const { data: { user } } = await admin.auth.getUser(token)
       if (user) {
-        const { data: profile } = await admin.from('users').select('household_id').eq('auth_user_id', user.id).single()
+        const { data: profile } = await admin.from('users').select('household_id, role').eq('auth_user_id', user.id).single()
         householdId = profile?.household_id ?? null
+        userRole = profile?.role ?? null
       }
     }
 
     if (!householdId) {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
-    }
-
-    if (!householdId) {
-      throw createError({ statusCode: 404, statusMessage: 'Rumah tangga tidak ditemukan' })
     }
 
     const body = await readBody(event)
@@ -41,6 +39,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    const finalOwnerType = ownerType || (userRole === 'single' ? 'sendiri' : 'bersama')
+
     const { data: bill, error: insertErr } = await admin
       .from('bills')
       .insert({
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
         name: name.trim(),
         amount: amtNum,
         due_date: dueDate,
-        owner_type: ownerType || 'bersama',
+        owner_type: finalOwnerType,
         is_recurring: isRecurring !== false,
         recurrence_rule: recurrenceRule || (isRecurring !== false ? 'monthly' : null),
         reminder_days_before: reminderDaysBefore || 3,

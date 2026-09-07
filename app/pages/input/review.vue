@@ -28,7 +28,7 @@ interface AccountItem {
   description?: string
 }
 
-const userRole = computed<'suami' | 'istri'>(() => currentUser.value?.role || 'suami')
+const userRole = computed<'suami' | 'istri' | 'single'>(() => (currentUser.value?.role as any) || 'suami')
 
 const type = ref<'expense' | 'income'>('expense')
 const name = ref((route.query.merchant as string) || '')
@@ -39,7 +39,7 @@ const rawTaxAmount = ref<number>(0)
 const rawServiceCharge = ref<number>(0)
 const dateVal = ref((route.query.date as string) || new Date().toISOString().split('T')[0])
 const note = ref('')
-const owner = ref<'suami' | 'istri' | 'bersama'>('suami')
+const owner = ref<'suami' | 'istri' | 'bersama' | 'sendiri'>('suami')
 const receiptObjectKey = ref((route.query.objectKey as string) || '')
 
 // Payment method
@@ -66,7 +66,11 @@ function handleTaxInput(e: Event) {
 watch(
   userRole,
   (role) => {
-    if (role) owner.value = role
+    if (role === 'single') {
+      owner.value = 'sendiri'
+    } else if (role) {
+      owner.value = role
+    }
   },
   { immediate: true }
 )
@@ -593,6 +597,20 @@ function repeatScan() {
         >
           <div class="avatar-badge avatar-badge--istri">I</div>
           <span>Istri</span>
+        </button>
+
+        <!-- Sendiri button (shown if userRole is single) -->
+        <button
+          v-if="userRole === 'single'"
+          type="button"
+          class="owner-card-btn"
+          :class="{ 'owner-card-btn--sendiri': owner === 'sendiri' }"
+          @click="owner = 'sendiri'"
+        >
+          <div class="avatar-badge avatar-badge--sendiri">
+            <span class="material-symbols-outlined text-[18px]">person</span>
+          </div>
+          <span>Sendiri</span>
         </button>
 
         <!-- Bersama button (shown ONLY if hasPartner is true) -->
@@ -1133,6 +1151,7 @@ function repeatScan() {
 .avatar-badge--suami { background: var(--suami); }
 .avatar-badge--istri { background: var(--istri); }
 .avatar-badge--bersama { background: var(--primary); }
+.avatar-badge--sendiri { background: #6366f1; }
 
 .owner-card-btn--suami {
   border-color: var(--suami);
@@ -1150,6 +1169,12 @@ function repeatScan() {
   border-color: var(--primary);
   background: color-mix(in srgb, var(--primary) 12%, transparent);
   color: var(--primary);
+}
+
+.owner-card-btn--sendiri {
+  border-color: #6366f1;
+  background: color-mix(in srgb, #6366f1 12%, transparent);
+  color: #6366f1;
 }
 
 /* Actions footer */

@@ -18,7 +18,7 @@ interface Bill {
   isUrgent: boolean
   urgencyLevel: 'overdue' | 'today' | 'urgent' | 'upcoming' | 'paid'
   badgeText: string
-  ownerType: 'bersama' | 'suami' | 'istri'
+  ownerType: 'bersama' | 'suami' | 'istri' | 'sendiri'
   ownerLabel: string
   status: 'pending' | 'lunas' | 'dibatalkan'
   isRecurring: boolean
@@ -75,7 +75,7 @@ const newBillForm = ref({
   name: '',
   amount: null as number | null,
   dueDate: '',
-  ownerType: 'bersama' as 'bersama' | 'suami' | 'istri',
+  ownerType: 'bersama' as 'bersama' | 'suami' | 'istri' | 'sendiri',
   reminderDaysBefore: 3,
   isRecurring: true,
   icon: 'receipt_long',
@@ -87,7 +87,7 @@ const editBillForm = ref({
   name: '',
   amount: null as number | null,
   dueDate: '',
-  ownerType: 'bersama' as 'bersama' | 'suami' | 'istri',
+  ownerType: 'bersama' as 'bersama' | 'suami' | 'istri' | 'sendiri',
   reminderDaysBefore: 3,
   isRecurring: true,
   icon: 'receipt_long',
@@ -189,6 +189,7 @@ const selectableAccounts = computed(() => {
     if (!role) return true
     if (role === 'suami') return a.ownerType === 'suami' || a.ownerType === 'bersama'
     if (role === 'istri') return a.ownerType === 'istri' || a.ownerType === 'bersama'
+    if (role === 'single') return a.ownerType === 'sendiri' || a.ownerType === 'bersama'
     return true
   })
 })
@@ -217,11 +218,12 @@ function openCreateModal() {
   const y = targetDate.getFullYear()
   const m = String(targetDate.getMonth() + 1).padStart(2, '0')
   const d = String(targetDate.getDate()).padStart(2, '0')
+  const isSingle = currentUser.value?.role === 'single'
   newBillForm.value = {
     name: '',
     amount: null,
     dueDate: `${y}-${m}-${d}`,
-    ownerType: 'bersama',
+    ownerType: isSingle ? 'sendiri' : 'bersama',
     reminderDaysBefore: 3,
     isRecurring: true,
     icon: 'receipt_long'
@@ -568,9 +570,9 @@ async function handleDeleteBill() {
             <span class="material-symbols-outlined text-[22px]">{{ bill.icon || getBillIcon(bill.name) }}</span>
             <div
               class="owner-tag"
-              :class="bill.ownerType === 'suami' ? 'owner-tag--suami' : bill.ownerType === 'istri' ? 'owner-tag--istri' : 'owner-tag--bersama'"
+              :class="bill.ownerType === 'suami' ? 'owner-tag--suami' : bill.ownerType === 'istri' ? 'owner-tag--istri' : bill.ownerType === 'sendiri' ? 'owner-tag--sendiri' : 'owner-tag--bersama'"
             >
-              {{ bill.ownerType === 'suami' ? 'S' : bill.ownerType === 'istri' ? 'I' : 'B' }}
+              {{ bill.ownerType === 'suami' ? 'S' : bill.ownerType === 'istri' ? 'I' : bill.ownerType === 'sendiri' ? 'S' : 'B' }}
             </div>
           </div>
 
@@ -785,7 +787,16 @@ async function handleDeleteBill() {
           <!-- Kepemilikan Tagihan -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-bold text-on-surface">Kepemilikan</label>
-            <div class="grid grid-cols-3 gap-2">
+            <div v-if="currentUser?.role === 'single'" class="grid grid-cols-1">
+              <button
+                type="button"
+                class="owner-toggle-btn owner-toggle-btn--active-sendiri"
+                @click="newBillForm.ownerType = 'sendiri'"
+              >
+                <span>Sendiri</span>
+              </button>
+            </div>
+            <div v-else class="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 class="owner-toggle-btn"
@@ -952,7 +963,16 @@ async function handleDeleteBill() {
           <!-- Kepemilikan Tagihan -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-bold text-on-surface">Kepemilikan</label>
-            <div class="grid grid-cols-3 gap-2">
+            <div v-if="currentUser?.role === 'single'" class="grid grid-cols-1">
+              <button
+                type="button"
+                class="owner-toggle-btn owner-toggle-btn--active-sendiri"
+                @click="editBillForm.ownerType = 'sendiri'"
+              >
+                <span>Sendiri</span>
+              </button>
+            </div>
+            <div v-else class="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 class="owner-toggle-btn"
@@ -1440,6 +1460,7 @@ async function handleDeleteBill() {
 .owner-tag--suami { background: #3B82F6; }
 .owner-tag--istri { background: #EC4899; }
 .owner-tag--bersama { background: #6366F1; }
+.owner-tag--sendiri { background: #6366F1; }
 
 .bill-texts {
   min-width: 0;
@@ -1741,6 +1762,12 @@ async function handleDeleteBill() {
   border-color: #EC4899;
   background: #FDF2F8;
   color: #DB2777;
+  font-weight: 700;
+}
+.owner-toggle-btn--active-sendiri {
+  border-color: #6366F1;
+  background: #EEF2FF;
+  color: #4F46E5;
   font-weight: 700;
 }
 

@@ -44,21 +44,33 @@ export default defineEventHandler(async (event) => {
 
     let householdId: string | null = null
     let userId: string | null = null
+    let userRole: string | null = null
 
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1]
       const { data: { user } } = await admin.auth.getUser(token)
       if (user) {
-        const { data: profile } = await admin.from('users').select('id, household_id').eq('auth_user_id', user.id).single()
+        const { data: profile } = await admin.from('users').select('id, household_id, role').eq('auth_user_id', user.id).single()
         if (profile) {
           userId = profile.id
           householdId = profile.household_id
+          userRole = profile.role
         }
       }
     }
 
     if (!householdId || !userId) {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    }
+
+    // Determine finalOwnerType based on user role
+    let finalOwnerType = ownerType
+    if (userRole === 'single') {
+      finalOwnerType = 'sendiri'
+    } else if (ownerType === 'sendiri') {
+      finalOwnerType = 'sendiri'
+    } else if (!ownerType) {
+      finalOwnerType = userRole === 'istri' ? 'istri' : (userRole === 'suami' ? 'suami' : 'bersama')
     }
 
     // 1. Get or find matching account
@@ -126,7 +138,7 @@ export default defineEventHandler(async (event) => {
           household_id: householdId,
           name: accountName || 'BCA Utama',
           account_type: 'bank',
-          owner_type: ownerType,
+          owner_type: finalOwnerType,
           current_balance: String(amount),
         })
         .select('id')
@@ -158,7 +170,7 @@ export default defineEventHandler(async (event) => {
           type: type,
           name: targetCatName,
           icon: type === 'income' ? 'payments' : 'restaurant',
-          applies_to: ownerType,
+          applies_to: finalOwnerType,
         })
         .select('id')
         .single()
@@ -319,7 +331,7 @@ export default defineEventHandler(async (event) => {
         account_id: accountId,
         category_id: categoryId,
         recorded_by_user_id: userId,
-        owner_type: ownerType,
+        owner_type: finalOwnerType,
         type: txType,
         amount: String(numAmount),
         tax_amount: String(numTax),

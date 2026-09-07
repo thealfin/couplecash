@@ -25,8 +25,11 @@ export default defineEventHandler(async (event) => {
       const token = authHeader.split(' ')[1]
       const { data: { user } } = await admin.auth.getUser(token)
       if (user) {
-        const { data: profile } = await admin.from('users').select('household_id').eq('auth_user_id', user.id).single()
+        const { data: profile } = await admin.from('users').select('household_id, role').eq('auth_user_id', user.id).single()
         householdId = profile?.household_id ?? null
+        if (profile?.role === 'single' && (!ownerType || ownerType === 'bersama')) {
+          ownerType = 'sendiri'
+        }
       }
     }
     if (!householdId) {

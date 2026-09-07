@@ -148,19 +148,19 @@ Berikut adalah galeri tangkapan layar antarmuka asli CoupleCash pada perangkat m
 
 ## 🛠 Teknologi & Stack Teknis (Tech Stack)
 
-| Kategori                         | Teknologi                                                  | Deskripsi / Peran                                                              |
-| :------------------------------- | :--------------------------------------------------------- | :----------------------------------------------------------------------------- |
-| **Frontend Framework**           | **Nuxt 4 (v4.5.2)** + **Vue 3 (v3.5.41)**                  | SSR/SPA modern berbasis Composition API dan file-based routing.                |
-| **Styling & Design**             | **Tailwind CSS (v3.4)** + **Plus Jakarta Sans**            | Desain utility-first mobile responsif dengan warna dinamis & micro-animations. |
-| **Backend / Server Engine**      | **Nitro (v2.13.4)**                                        | Fullstack TypeScript server routes terintegrasi di dalam Nuxt.                 |
-| **Database & Auth**              | **Supabase (PostgreSQL 15)**                               | Relational database dengan Row Level Security (RLS) & Supabase Auth.           |
-| **Database ORM & Types**         | **Drizzle ORM (v0.45)** + **postgres.js**                  | Type-safe SQL client dan query builder.                                        |
-| **Cloud Object Storage**         | **Cloudflare R2** via **AWS SDK S3**                       | Penyimpanan gambar struk & avatar tanpa biaya transfer egress data.            |
-| **Artificial Intelligence**      | **Google Gemini API (@google/generative-ai)**              | Multimodal AI Vision untuk OCR struk dan asisten keuangan interaktif.          |
-| **Autentikasi Biometrik (FIDO2)**| **SimpleWebAuthn (`@simplewebauthn/browser` & `server`)**  | FIDO2 WebAuthn untuk autentikasi Sidik Jari, Face ID, dan Windows Hello.       |
-| **Kriptografi & Hashing PIN**    | **Web Crypto API (AES-256-GCM) & PBKDF2 (100k rounds)**    | Zero-knowledge client-side encryption dan hashing PIN berkekuatan tinggi.      |
-| **Local Offline Cache**          | **IndexedDB (`idb` v8)**                                   | Penyimpanan lokal untuk cache struk, offline draft, dan master encryption key. |
-| **Pengujian & Otomasi**          | **Playwright (v1.62)** & **Vitest / Native Test Suites**   | Validasi end-to-end, penangkapan screenshot, dan verifikasi vault security.    |
+| Kategori                          | Teknologi                                                 | Deskripsi / Peran                                                              |
+| :-------------------------------- | :-------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| **Frontend Framework**            | **Nuxt 4 (v4.5.2)** + **Vue 3 (v3.5.41)**                 | SSR/SPA modern berbasis Composition API dan file-based routing.                |
+| **Styling & Design**              | **Tailwind CSS (v3.4)** + **Plus Jakarta Sans**           | Desain utility-first mobile responsif dengan warna dinamis & micro-animations. |
+| **Backend / Server Engine**       | **Nitro (v2.13.4)**                                       | Fullstack TypeScript server routes terintegrasi di dalam Nuxt.                 |
+| **Database & Auth**               | **Supabase (PostgreSQL 15)**                              | Relational database dengan Row Level Security (RLS) & Supabase Auth.           |
+| **Database ORM & Types**          | **Drizzle ORM (v0.45)** + **postgres.js**                 | Type-safe SQL client dan query builder.                                        |
+| **Cloud Object Storage**          | **Cloudflare R2** via **AWS SDK S3**                      | Penyimpanan gambar struk & avatar tanpa biaya transfer egress data.            |
+| **Artificial Intelligence**       | **Google Gemini API (@google/generative-ai)**             | Multimodal AI Vision untuk OCR struk dan asisten keuangan interaktif.          |
+| **Autentikasi Biometrik (FIDO2)** | **SimpleWebAuthn (`@simplewebauthn/browser` & `server`)** | FIDO2 WebAuthn untuk autentikasi Sidik Jari, Face ID, dan Windows Hello.       |
+| **Kriptografi & Hashing PIN**     | **Web Crypto API (AES-256-GCM) & PBKDF2 (100k rounds)**   | Zero-knowledge client-side encryption dan hashing PIN berkekuatan tinggi.      |
+| **Local Offline Cache**           | **IndexedDB (`idb` v8)**                                  | Penyimpanan lokal untuk cache struk, offline draft, dan master encryption key. |
+| **Pengujian & Otomasi**           | **Playwright (v1.62)** & **Vitest / Native Test Suites**  | Validasi end-to-end, penangkapan screenshot, dan verifikasi vault security.    |
 
 ---
 

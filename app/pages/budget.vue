@@ -4,7 +4,7 @@ useHead({ title: 'Budget — CoupleCash' })
 
 const router = useRouter()
 const { getAuthToken, currentUser, hasPartner } = useAuth()
-const userRole = computed<'suami' | 'istri'>(() => currentUser.value?.role || 'suami')
+const userRole = computed<'suami' | 'istri' | 'single'>(() => (currentUser.value?.role as any) || 'suami')
 const token = await getAuthToken()
 const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
 
@@ -55,7 +55,7 @@ const submitError = ref('')
 const form = reactive({
   name: '',
   categoryId: '',
-  ownerType: 'bersama' as 'suami' | 'istri' | 'bersama',
+  ownerType: 'bersama' as 'suami' | 'istri' | 'bersama' | 'sendiri',
   periodType: 'bulanan' as 'mingguan' | 'bulanan' | 'berkala',
   limitAmount: '',
   periodStart: new Date().toISOString().split('T')[0],
@@ -70,13 +70,20 @@ const form = reactive({
 watch(
   userRole,
   (role) => {
-    if (role) form.ownerType = role
+    if (role === 'single') {
+      form.ownerType = 'sendiri'
+    } else if (role) {
+      form.ownerType = role
+    }
   },
   { immediate: true }
 )
 
 const ownerOptions = computed(() => {
   const opts = []
+  if (userRole.value === 'single') {
+    opts.push({ key: 'sendiri', label: 'Sendiri (Pribadi)' })
+  }
   if (userRole.value === 'suami') {
     opts.push({ key: 'suami', label: suamiName.value || 'Suami' })
   }
@@ -328,7 +335,7 @@ onUnmounted(() => {
                     v-for="owner in item.owners"
                     :key="owner"
                     class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                    :class="owner === 'suami' ? 'bg-suami/15 text-suami' : owner === 'istri' ? 'bg-istri/15 text-istri' : 'bg-primary/15 text-primary'"
+                    :class="owner === 'suami' ? 'bg-suami/15 text-suami' : owner === 'istri' ? 'bg-istri/15 text-istri' : owner === 'sendiri' ? 'bg-indigo-100 text-indigo-700' : 'bg-primary/15 text-primary'"
                   >
                     {{ owner }}
                   </span>

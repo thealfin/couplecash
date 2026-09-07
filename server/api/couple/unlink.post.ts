@@ -121,35 +121,36 @@ export default defineEventHandler(async (event) => {
       })
       .eq('id', householdId)
 
-    // 6. Strict Data Separation: Transfer ONLY partner's personal elements to newHousehold
+    // 6. Strict Data Separation: Transfer partner's personal elements to newHousehold & transition to 'sendiri'
     const partnerRole = partner.role
+    const currentRole = currentProfile.role
 
     if (partnerRole) {
-      // Transfer partner's personal financial accounts
+      // Transfer partner's personal financial accounts & set to 'sendiri'
       await admin
         .from('financial_accounts')
-        .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+        .update({ household_id: newHousehold.id, owner_type: 'sendiri', updated_at: new Date().toISOString() })
         .eq('household_id', householdId)
         .eq('owner_type', partnerRole)
 
       // Transfer partner's personal budgets
       await admin
         .from('budgets')
-        .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+        .update({ household_id: newHousehold.id, owner_type: 'sendiri', updated_at: new Date().toISOString() })
         .eq('household_id', householdId)
         .eq('owner_type', partnerRole)
 
       // Transfer partner's personal categories
       await admin
         .from('categories')
-        .update({ household_id: newHousehold.id })
+        .update({ household_id: newHousehold.id, applies_to: 'sendiri' })
         .eq('household_id', householdId)
         .eq('applies_to', partnerRole)
 
-      // Transfer partner's personal bills
+      // Transfer partner's personal bills & set to 'sendiri'
       await admin
         .from('bills')
-        .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+        .update({ household_id: newHousehold.id, owner_type: 'sendiri', updated_at: new Date().toISOString() })
         .eq('household_id', householdId)
         .eq('owner_type', partnerRole)
     }
@@ -161,12 +162,54 @@ export default defineEventHandler(async (event) => {
       .eq('household_id', householdId)
       .eq('created_by_user_id', partner.id)
 
-    // Transfer partner's historical transactions (recorded by partner)
+    // Transfer partner's historical transactions, backup previous role, and set active owner_type to 'sendiri'
     await admin
       .from('transactions')
-      .update({ household_id: newHousehold.id, updated_at: new Date().toISOString() })
+      .update({
+        household_id: newHousehold.id,
+        previous_role: partnerRole || 'istri',
+        owner_type: 'sendiri',
+        updated_at: new Date().toISOString(),
+      })
       .eq('household_id', householdId)
       .eq('recorded_by_user_id', partner.id)
+
+    // Also transition current user's personal items to 'sendiri' in current household
+    if (currentRole) {
+      await admin
+        .from('financial_accounts')
+        .update({ owner_type: 'sendiri', updated_at: new Date().toISOString() })
+        .eq('household_id', householdId)
+        .eq('owner_type', currentRole)
+
+      await admin
+        .from('budgets')
+        .update({ owner_type: 'sendiri', updated_at: new Date().toISOString() })
+        .eq('household_id', householdId)
+        .eq('owner_type', currentRole)
+
+      await admin
+        .from('categories')
+        .update({ applies_to: 'sendiri' })
+        .eq('household_id', householdId)
+        .eq('applies_to', currentRole)
+
+      await admin
+        .from('bills')
+        .update({ owner_type: 'sendiri', updated_at: new Date().toISOString() })
+        .eq('household_id', householdId)
+        .eq('owner_type', currentRole)
+
+      await admin
+        .from('transactions')
+        .update({
+          previous_role: currentRole,
+          owner_type: 'sendiri',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('household_id', householdId)
+        .eq('recorded_by_user_id', currentProfile.id)
+    }
 
     // Duplicate shared default categories to newHousehold so partner has independent categories
     const { data: sharedCats = [] } = await admin

@@ -5,12 +5,12 @@ useHead({
   title: 'Beranda — CoupleCash',
 })
 
-const { currentHousehold, hasPartner, currentUser, isBalanceHidden, toggleBalanceVisibility, openSyncModal, getAuthToken } = useAuth()
+const { currentHousehold, hasPartner, currentUser, isBalanceHidden, toggleBalanceVisibility, openSyncModal, getAuthToken, currentToken } = useAuth()
 
 interface DashboardData {
   totalBalance: number
   totalBalanceText: string
-  breakdown: { suami: number; istri: number; bersama: number }
+  breakdown: { suami: number; istri: number; bersama: number; sendiri?: number }
   monthlyChange: {
     pct: number
     direction: 'up' | 'down' | 'flat'
@@ -58,25 +58,39 @@ interface DashboardData {
     amountText: string
     type: string
     owner: string
+    previousRole?: string | null
   }>
 }
 
-const token = await getAuthToken()
+const dashboardFetchKey = computed(() => `dashboard-${currentUser.value?.id || 'guest'}`)
+const billsFetchKey = computed(() => `bills-${currentUser.value?.id || 'guest'}`)
+
 const { data, refresh } = await useFetch<DashboardData>('/api/dashboard', {
-  headers: token ? { Authorization: `Bearer ${token}` } : {}
+  key: dashboardFetchKey.value,
+  headers: computed(() => {
+    const t = currentToken.value
+    return t ? { Authorization: `Bearer ${t}` } : {}
+  }),
 })
 
 // Bills & Subscriptions data fetch
 const { data: billsResponse, refresh: refreshBills } = await useFetch<any>('/api/bills', {
-  headers: token ? { Authorization: `Bearer ${token}` } : {}
+  key: billsFetchKey.value,
+  headers: computed(() => {
+    const t = currentToken.value
+    return t ? { Authorization: `Bearer ${t}` } : {}
+  }),
 })
 
-// Re-fetch data when partner is linked/synced or hasPartner changes
-watch(hasPartner, async () => {
+// Re-fetch data when partner is linked/synced or user changes
+watch([hasPartner, () => currentUser.value?.id], async () => {
   await Promise.all([refresh(), refreshBills()])
 })
 
-onMounted(() => {
+onMounted(async () => {
+  // Ensure real-time freshness when mounting component
+  await Promise.all([refresh(), refreshBills()])
+
   if (typeof window !== 'undefined') {
     window.addEventListener('couple-synced', () => {
       refresh()
@@ -247,7 +261,7 @@ const newBillForm = ref({
   name: '',
   amount: null as number | null,
   dueDate: '',
-  ownerType: 'bersama' as 'bersama' | 'suami' | 'istri',
+  ownerType: 'bersama' as 'bersama' | 'suami' | 'istri' | 'sendiri',
   reminderDaysBefore: 3,
   isRecurring: true
 })
@@ -260,11 +274,12 @@ function openCreateBillModal() {
   const y = targetDate.getFullYear()
   const m = String(targetDate.getMonth() + 1).padStart(2, '0')
   const d = String(targetDate.getDate()).padStart(2, '0')
+  const isSingle = currentUser.value?.role === 'single'
   newBillForm.value = {
     name: '',
     amount: null,
     dueDate: `${y}-${m}-${d}`,
-    ownerType: 'bersama',
+    ownerType: isSingle ? 'sendiri' : 'bersama',
     reminderDaysBefore: 3,
     isRecurring: true
   }
@@ -719,6 +734,11 @@ function getAccountDisplayBalance(accText: string) {
                 <div class="tx-owner-badge tx-owner-badge--istri">I</div>
               </div>
             </template>
+            <template v-else-if="tx.owner === 'sendiri'">
+              <div class="tx-owner-badge bg-primary text-white">
+                S
+              </div>
+            </template>
             <template v-else>
               <div class="tx-owner-badge" :class="`tx-owner-badge--${tx.owner}`">
                 {{ tx.owner === 'suami' ? 'S' : 'I' }}
@@ -728,7 +748,16 @@ function getAccountDisplayBalance(accText: string) {
 
           <!-- Info -->
           <div class="tx-info">
-            <p class="tx-name">{{ tx.name }}</p>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <p class="tx-name">{{ tx.name }}</p>
+              <span
+                v-if="tx.previousRole"
+                class="text-[9px] bg-slate-100 text-slate-600 font-semibold px-1.5 py-0.2 rounded border border-slate-200"
+                :title="`Dibuat saat berstatus ${tx.previousRole}`"
+              >
+                Riwayat: {{ tx.previousRole === 'suami' ? 'Suami' : 'Istri' }}
+              </span>
+            </div>
             <p class="tx-meta">{{ tx.meta }}</p>
           </div>
 
@@ -997,7 +1026,16 @@ function getAccountDisplayBalance(accText: string) {
           <!-- Kepemilikan Tagihan -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-bold text-on-surface">Kepemilikan</label>
-            <div class="grid grid-cols-3 gap-2">
+            <div v-if="currentUser?.role === 'single'" class="grid grid-cols-1">
+              <button
+                type="button"
+                class="py-2.5 px-3 rounded-xl border border-primary bg-primary/10 text-primary font-bold text-xs flex items-center justify-center gap-1.5 cursor-default"
+              >
+                <span class="material-symbols-outlined text-[16px]">person</span>
+                <span>Sendiri (Pribadi)</span>
+              </button>
+            </div>
+            <div v-else class="grid grid-cols-3 gap-2">
               <button
                 type="button"
                 class="py-2 px-1 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer"

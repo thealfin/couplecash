@@ -168,6 +168,32 @@ export default defineEventHandler(async (event) => {
         .eq('household_id', oldHouseholdId)
       if (billErr) console.warn('[verify-code] move bills error:', billErr)
 
+      // Transition migrating user's 'sendiri' elements to chosenUserRole ('suami' or 'istri')
+      await admin
+        .from('financial_accounts')
+        .update({ owner_type: chosenUserRole, updated_at: new Date().toISOString() })
+        .eq('household_id', targetHousehold.id)
+        .eq('owner_type', 'sendiri')
+
+      await admin
+        .from('transactions')
+        .update({ owner_type: chosenUserRole, updated_at: new Date().toISOString() })
+        .eq('household_id', targetHousehold.id)
+        .eq('recorded_by_user_id', currentProfile.id)
+        .eq('owner_type', 'sendiri')
+
+      await admin
+        .from('bills')
+        .update({ owner_type: chosenUserRole, updated_at: new Date().toISOString() })
+        .eq('household_id', targetHousehold.id)
+        .eq('owner_type', 'sendiri')
+
+      await admin
+        .from('categories')
+        .update({ applies_to: chosenUserRole })
+        .eq('household_id', targetHousehold.id)
+        .eq('applies_to', 'sendiri')
+
       // 7. Clean up orphan starter household if empty
       const { data: remainingUsers } = await admin
         .from('users')
@@ -181,6 +207,34 @@ export default defineEventHandler(async (event) => {
           .eq('id', oldHouseholdId)
         if (delHhErr) console.warn('[verify-code] delete old household error:', delHhErr)
       }
+    }
+
+    // Also transition existing partner's 'sendiri' elements if partner transitioned to suami/istri
+    if (existingPartner && partnerNewRole) {
+      await admin
+        .from('financial_accounts')
+        .update({ owner_type: partnerNewRole, updated_at: new Date().toISOString() })
+        .eq('household_id', targetHousehold.id)
+        .eq('owner_type', 'sendiri')
+
+      await admin
+        .from('transactions')
+        .update({ owner_type: partnerNewRole, updated_at: new Date().toISOString() })
+        .eq('household_id', targetHousehold.id)
+        .eq('recorded_by_user_id', existingPartner.id)
+        .eq('owner_type', 'sendiri')
+
+      await admin
+        .from('bills')
+        .update({ owner_type: partnerNewRole, updated_at: new Date().toISOString() })
+        .eq('household_id', targetHousehold.id)
+        .eq('owner_type', 'sendiri')
+
+      await admin
+        .from('categories')
+        .update({ applies_to: partnerNewRole })
+        .eq('household_id', targetHousehold.id)
+        .eq('applies_to', 'sendiri')
     }
 
     // 8. Update target household name to combined name

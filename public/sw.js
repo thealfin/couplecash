@@ -1,6 +1,6 @@
 // Service Worker for CoupleCash PWA (Modern Stale-While-Revalidate & Network-First)
-const STATIC_CACHE = 'couplecash-static-v2';
-const DYNAMIC_CACHE = 'couplecash-dynamic-v2';
+const STATIC_CACHE = 'couplecash-static-v3';
+const DYNAMIC_CACHE = 'couplecash-dynamic-v3';
 
 // Core assets to cache immediately on install
 const STATIC_ASSETS = [
@@ -90,28 +90,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 2: Network-First with Offline Fallback for Navigation & Page Routes
-  if (request.mode === 'navigate') {
-    event.respondWith(networkFirstNavigation(request));
-    return;
-  }
-
-  // Explicitly NEVER cache sensitive vault, security, or biometric endpoints
-  if (
-    url.pathname.startsWith('/api/vault') ||
-    url.pathname.startsWith('/api/security')
-  ) {
-    // Direct network-only fetch, never hit or put into SW cache
-    event.respondWith(fetch(request));
-    return;
-  }
-
-  // Strategy 3: Network-First for general API & Data requests
+  // Strategy 2: Explicitly NEVER cache sensitive financial, user, bills, vault, or security API endpoints
   if (
     url.pathname.startsWith('/api/') ||
     url.hostname.includes('supabase.co')
   ) {
-    event.respondWith(networkFirstData(request));
+    // Direct network fetch, never store or serve cross-account cache
+    event.respondWith(
+      fetch(request).catch(() => {
+        return new Response(JSON.stringify({ offline: true, message: 'Tidak ada koneksi internet' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
+  }
+
+  // Strategy 3: Network-First with Offline Fallback for Navigation & Page Routes
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirstNavigation(request));
     return;
   }
 

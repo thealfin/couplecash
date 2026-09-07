@@ -10,7 +10,7 @@ interface Account {
   id: string
   name: string
   accountType: 'bank' | 'e_wallet' | 'deposito' | 'cash' | 'crypto' | 'debt'
-  ownerType: 'suami' | 'istri' | 'bersama'
+  ownerType: 'suami' | 'istri' | 'bersama' | 'sendiri'
   icon: string
   balance: number
   balanceText: string
@@ -22,7 +22,7 @@ interface Account {
   updatedAt?: string
 }
 
-const userRole = computed<'suami' | 'istri'>(() => currentUser.value?.role || 'suami')
+const userRole = computed<'suami' | 'istri' | 'single'>(() => (currentUser.value?.role as any) || 'suami')
 
 const accounts = ref<Account[]>([])
 const isLoading = ref(true)
@@ -61,7 +61,7 @@ const customName = ref('')
 const accountNumberInput = ref('')
 const holderNameInput = ref('')
 const rawBalanceInput = ref('')
-const selectedOwnership = ref<'suami' | 'bersama' | 'istri'>('suami')
+const selectedOwnership = ref<'suami' | 'bersama' | 'istri' | 'sendiri'>('suami')
 const isSubmitting = ref(false)
 const formError = ref('')
 
@@ -94,7 +94,11 @@ onUnmounted(() => {
 watch(
   userRole,
   (role) => {
-    if (role) selectedOwnership.value = role
+    if (role === 'single') {
+      selectedOwnership.value = 'sendiri'
+    } else if (role) {
+      selectedOwnership.value = role
+    }
   },
   { immediate: true }
 )
@@ -353,6 +357,7 @@ function getIconForAccount(acc: Account) {
 function getOwnerLabel(owner: string) {
   if (owner === 'suami') return 'Akun Suami'
   if (owner === 'istri') return 'Akun Istri'
+  if (owner === 'sendiri') return 'Akun Pribadi'
   return 'Akun Bersama'
 }
 
@@ -441,7 +446,9 @@ function getAccountTypeLabel(type: string) {
                     ? 'bg-blue-100 text-blue-600'
                     : acc.ownerType === 'istri'
                       ? 'bg-pink-100 text-pink-600'
-                      : 'bg-primary/10 text-primary'
+                      : acc.ownerType === 'sendiri'
+                        ? 'bg-indigo-100 text-indigo-600'
+                        : 'bg-primary/10 text-primary'
               ]"
             >
               <span class="material-symbols-outlined text-[22px]">{{ getIconForAccount(acc) }}</span>
@@ -459,7 +466,7 @@ function getAccountTypeLabel(type: string) {
               <div class="flex items-center gap-1.5 mt-0.5">
                 <span
                   class="w-2 h-2 rounded-full"
-                  :class="acc.ownerType === 'suami' ? 'bg-blue-500' : acc.ownerType === 'istri' ? 'bg-pink-500' : 'bg-primary'"
+                  :class="acc.ownerType === 'suami' ? 'bg-blue-500' : acc.ownerType === 'istri' ? 'bg-pink-500' : acc.ownerType === 'sendiri' ? 'bg-indigo-500' : 'bg-primary'"
                 ></span>
                 <span class="text-[11px] text-muted">{{ getOwnerLabel(acc.ownerType) }}</span>
                 <span class="text-[11px] text-muted">•</span>
@@ -705,7 +712,16 @@ function getAccountTypeLabel(type: string) {
           <!-- Ownership Selector -->
           <div>
             <label class="block text-xs font-bold text-on-background mb-1">Kepemilikan Akun</label>
-            <div class="flex bg-surface-container-low p-1 rounded-2xl border border-surface-variant/50">
+            <div v-if="userRole === 'single'" class="flex bg-surface-container-low p-1 rounded-2xl border border-surface-variant/50">
+              <button
+                type="button"
+                class="flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer bg-primary text-white shadow-sm"
+                @click="selectedOwnership = 'sendiri'"
+              >
+                Sendiri (Pribadi)
+              </button>
+            </div>
+            <div v-else class="flex bg-surface-container-low p-1 rounded-2xl border border-surface-variant/50">
               <button
                 type="button"
                 class="flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer"

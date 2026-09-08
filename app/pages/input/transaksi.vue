@@ -124,6 +124,27 @@ function selectDebtItem(debt: any) {
 
 function clearSelectedDebt() {
   selectedDebtId.value = null
+  isDebtOverpayConfirmed.value = false
+}
+
+// Debt Overpayment Modal state
+const isDebtOverpayModalOpen = ref(false)
+const isDebtOverpayConfirmed = ref(false)
+const newDebtAccountType = ref<'bank' | 'e_wallet' | 'cash' | 'deposito'>('bank')
+const excessDebtAmount = ref(0)
+const originalDebtAmount = ref(0)
+
+const debtAccountTypeOptions = [
+  { value: 'bank', label: 'Rekening Bank', desc: 'Ubah menjadi saldo rekening tabungan', icon: 'account_balance' },
+  { value: 'e_wallet', label: 'E-Wallet', desc: 'Ubah menjadi dompet digital', icon: 'account_balance_wallet' },
+  { value: 'cash', label: 'Kas Tunai', desc: 'Ubah menjadi uang tunai di dompet', icon: 'payments' },
+  { value: 'deposito', label: 'Deposito', desc: 'Ubah menjadi simpanan / investasi', icon: 'savings' },
+]
+
+function confirmDebtOverpay() {
+  isDebtOverpayConfirmed.value = true
+  isDebtOverpayModalOpen.value = false
+  handleSubmit()
 }
 
 const availableCategories = computed(() => {
@@ -340,12 +361,16 @@ async function handleSubmit() {
     return
   }
 
-  // Debt Payment Validation
+  // Debt Payment Validation & Overpayment Modal Intercept
   if (category.value === 'Hutang & Kewajiban' && selectedDebt.value) {
     const outstanding = Math.abs(selectedDebt.value.balance)
     if (rawAmount.value > outstanding && outstanding > 0) {
-      errorMessage.value = 'Nominal pembayaran melebihi sisa hutang.'
-      return
+      if (!isDebtOverpayConfirmed.value) {
+        originalDebtAmount.value = outstanding
+        excessDebtAmount.value = rawAmount.value - outstanding
+        isDebtOverpayModalOpen.value = true
+        return
+      }
     }
   }
 
@@ -382,6 +407,7 @@ async function handleSubmit() {
         source: 'manual',
         billId: selectedBillId.value,
         targetDebtAccountId: (category.value === 'Hutang & Kewajiban' && selectedDebtId.value) ? selectedDebtId.value : null,
+        newAccountType: (category.value === 'Hutang & Kewajiban' && isDebtOverpayConfirmed.value) ? newDebtAccountType.value : null,
       },
     })
     if (res.success) {
@@ -393,6 +419,7 @@ async function handleSubmit() {
   } finally {
     isSaving.value = false
     bypassBalanceWarning.value = false
+    isDebtOverpayConfirmed.value = false
   }
 }
 </script>
@@ -780,6 +807,108 @@ async function handleSubmit() {
       @switch-account="handleSwitchAccount"
       @proceed-anyway="handleProceedAnyway"
     />
+
+    <!-- Debt Overpayment Modal -->
+    <div
+      v-if="isDebtOverpayModalOpen"
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 transition-opacity duration-300 animate-fade-in"
+      @click.self="isDebtOverpayModalOpen = false"
+    >
+      <div class="bg-surface-container-lowest w-full max-w-md rounded-3xl p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant/30 max-h-[90vh] overflow-y-auto m-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-2 border-b border-outline-variant/20">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[22px]">price_change</span>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-on-surface">Pelunasan Melebihi Sisa Hutang</h3>
+              <p class="text-[11px] text-muted">Konfirmasi pengalihan sisa kelebihan dana</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="w-7 h-7 rounded-full bg-surface-container hover:bg-surface-variant flex items-center justify-center text-muted hover:text-on-surface transition-colors cursor-pointer"
+            @click="isDebtOverpayModalOpen = false"
+          >
+            <span class="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+
+        <!-- Info Breakdown Box -->
+        <div class="p-3.5 bg-surface rounded-2xl border border-outline-variant/20 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted">Sisa Hutang "{{ selectedDebt?.name }}"</span>
+            <span class="font-bold text-rose-600">Rp {{ originalDebtAmount.toLocaleString('id-ID') }}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted">Nominal Dibayarkan</span>
+            <span class="font-bold text-on-surface">Rp {{ rawAmount.toLocaleString('id-ID') }}</span>
+          </div>
+          <div class="pt-2 border-t border-outline-variant/20 flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold text-emerald-600 block">Kelebihan Pembayaran</span>
+              <span class="text-[10px] text-muted">Akan otomatis menjadi saldo rekening</span>
+            </div>
+            <span class="text-sm font-extrabold text-emerald-600 tabular-nums">
+              +Rp {{ excessDebtAmount.toLocaleString('id-ID') }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Opsi Pilihan Jenis Pos Akun Baru -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-on-surface">
+            Pilih Jenis Pos Akun Baru untuk "{{ selectedDebt?.name }}":
+          </label>
+          <div class="grid grid-cols-1 gap-2">
+            <button
+              v-for="opt in debtAccountTypeOptions"
+              :key="opt.value"
+              type="button"
+              class="p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer"
+              :class="newDebtAccountType === opt.value
+                ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                : 'border-outline-variant/30 bg-surface hover:bg-surface-container-low'"
+              @click="newDebtAccountType = opt.value as any"
+            >
+              <div
+                class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                :class="newDebtAccountType === opt.value ? 'bg-primary text-white' : 'bg-surface-container text-muted'"
+              >
+                <span class="material-symbols-outlined text-[19px]">{{ opt.icon }}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-on-surface">{{ opt.label }}</p>
+                <p class="text-[10px] text-muted">{{ opt.desc }}</p>
+              </div>
+              <span class="material-symbols-outlined text-[18px]" :class="newDebtAccountType === opt.value ? 'text-primary' : 'text-transparent'">
+                check_circle
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-variant text-xs font-semibold text-muted hover:text-on-surface transition-colors cursor-pointer"
+            @click="isDebtOverpayModalOpen = false"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+            @click="confirmDebtOverpay"
+          >
+            <span class="material-symbols-outlined text-[16px]">check</span>
+            <span>Konfirmasi &amp; Ubah Pos Akun</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>

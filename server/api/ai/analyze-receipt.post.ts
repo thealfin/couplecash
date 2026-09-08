@@ -53,11 +53,16 @@ export default defineEventHandler(async (event) => {
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const currentYear = today.getFullYear();
+
     const prompt = `Ekstrak data transaksi keuangan dari foto struk/nota belanja ini secara akurat menjadi format JSON.
+Catatan Waktu Sistem: Tanggal hari ini adalah ${todayStr} (Tahun ${currentYear}).
 Format output JSON WAJIB dengan field berikut:
 {
   "merchant": string (nama toko/restoran/penjual, misal "Grand Lucky", "Starbucks", "Indomaret"),
-  "date": string (format YYYY-MM-DD, gunakan tanggal hari ini jika tidak terbaca),
+  "date": string (format YYYY-MM-DD. Gunakan tanggal transaksi jika tertera jelas di struk. Jika tahun tidak tertera jelas, hanya 2 digit, atau struk baru, WAJIB gunakan tahun berjalan ${currentYear}. Jika tanggal tidak terbaca sama sekali, gunakan tanggal hari ini "${todayStr}"),
   "time": string (format HH:mm, default "12:00" jika tidak ada),
   "subtotal": number (subtotal belanja sebelum pajak dan diskon dalam Rupiah, bulat integer tanpa desimal, default 0),
   "discount": number (nilai total diskon/potongan harga jika ada dalam Rupiah, bulat integer, default 0),
@@ -73,7 +78,8 @@ Format output JSON WAJIB dengan field berikut:
 Ketentuan Khusus:
 1. "amount" adalah grand total akhir yang dibayar konsumen.
 2. "tax_amount" adalah komponen pajak yang termasuk dalam grand total (bukan tambahan di luar grand total). tax_amount tidak boleh lebih besar dari amount.
-3. Hanya gunakan enum payment_method yang ditentukan jika jelas tercantum di struk. Jika tunai/cash, set payment_method ke null.`;
+3. Hanya gunakan enum payment_method yang ditentukan jika jelas tercantum di struk. Jika tunai/cash, set payment_method ke null.
+4. "date" WAJIB berformat YYYY-MM-DD yang valid. Jangan gunakan tahun lampau sebelum ${currentYear} kecuali tertera secara eksplisit dengan 4 digit tahun di atas kertas struk.`;
 
     // Candidate models: enforce Gemini >= 2.5 (with auto-fallback to gemini-3.6-flash / gemini-flash-latest)
     const candidateModels = preferredModel === 'gemini-2.5-pro'

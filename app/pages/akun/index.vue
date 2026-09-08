@@ -48,7 +48,15 @@ function openPwaModal() {
 }
 
 // ── Secure Vault & Biometric Engine ──
-const vault = useVault()
+const {
+  items: vaultItems,
+  loading: vaultLoading,
+  error: vaultError,
+  fetchVaultItems,
+  createVaultItem,
+  updateVaultItem,
+  deleteVaultItem,
+} = useVault()
 const vaultSecurity = useVaultSecurity()
 const webAuthn = useWebAuthn()
 const { vaultState, secondsRemaining, revealedSecrets } = vaultSecurity
@@ -82,20 +90,23 @@ const formError = ref('')
 onMounted(async () => {
   await loadSettings()
   await webAuthn.checkSupport()
-})
-
-watch(activeTab, async (tab) => {
-  if (tab === 'vault' && vaultState.value === 'unlocked') {
-    await vault.fetchVaultItems()
+  if (activeTab.value === 'vault' && vaultState.value === 'unlocked') {
+    await fetchVaultItems()
   }
 })
+
+watch([activeTab, vaultState], async ([tab, state]) => {
+  if (tab === 'vault' && state === 'unlocked') {
+    await fetchVaultItems()
+  }
+}, { immediate: true })
 
 async function handleUnlockBiometric() {
   isUnlocking.value = true
   try {
     const ok = await vaultSecurity.unlockWithBiometric()
     if (ok) {
-      await vault.fetchVaultItems()
+      await fetchVaultItems()
       showToast('Brankas berhasil dibuka dengan biometrik')
     }
   } catch (err: any) {
@@ -128,7 +139,7 @@ async function handleUnlockWithPin() {
     const ok = await vaultSecurity.unlockWithPin(pinInput.value)
     if (ok) {
       showPinModal.value = false
-      await vault.fetchVaultItems()
+      await fetchVaultItems()
       showToast('Brankas berhasil dibuka')
     }
   } catch (err: any) {
@@ -186,7 +197,7 @@ async function handleSaveNewVault() {
   formSubmitting.value = true
   formError.value = ''
   try {
-    await vault.createVaultItem({
+    await createVaultItem({
       platformType: formPlatformType.value,
       platformName: formPlatformName.value.trim(),
       usernameMasked: formUsername.value.trim() || '-',
@@ -223,7 +234,7 @@ async function handleSaveEditVault() {
   formSubmitting.value = true
   formError.value = ''
   try {
-    await vault.updateVaultItem(selectedItem.value.id, {
+    await updateVaultItem(selectedItem.value.id, {
       platformType: formPlatformType.value,
       platformName: formPlatformName.value.trim(),
       usernameMasked: formUsername.value.trim() || '-',
@@ -248,7 +259,7 @@ async function handleDeleteVault() {
   if (!selectedItem.value) return
   formSubmitting.value = true
   try {
-    await vault.deleteVaultItem(selectedItem.value.id)
+    await deleteVaultItem(selectedItem.value.id)
     showDeleteModal.value = false
     showToast('Kredensial berhasil dihapus dari brankas')
   } catch (err: any) {
@@ -262,6 +273,16 @@ function formatCountdown(sec: number): string {
   const m = Math.floor(sec / 60)
   const s = sec % 60
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+const { resetAllTours } = useWalkthrough()
+
+function handleReplayTour() {
+  resetAllTours()
+  showToast('Panduan walkthrough diatur ulang! Membuka Beranda...')
+  setTimeout(() => {
+    navigateTo('/beranda')
+  }, 600)
 }
 </script>
 
@@ -412,6 +433,17 @@ function formatCountdown(sec: number): string {
             </div>
             <span class="material-symbols-outlined menu-arrow">chevron_right</span>
           </div>
+          <div class="menu-divider"></div>
+          <div class="menu-item cursor-pointer" @click="handleReplayTour">
+            <div class="menu-icon" style="background:color-mix(in srgb, var(--primary) 12%, transparent);color:var(--primary)">
+              <span class="material-symbols-outlined">help_center</span>
+            </div>
+            <div class="menu-text">
+              <span class="menu-label">Panduan Penggunaan (Walkthrough)</span>
+              <span class="menu-sub font-metadata-xs">Ulangi animasi panduan Beranda, Analitik, Goals &amp; Pairing</span>
+            </div>
+            <span class="material-symbols-outlined menu-arrow">chevron_right</span>
+          </div>
         </div>
       </div>
 
@@ -503,7 +535,7 @@ function formatCountdown(sec: number): string {
         </div>
 
         <!-- Empty State -->
-        <div v-if="vault.items.length === 0 && !vault.loading" class="py-12 px-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center gap-2">
+        <div v-if="vaultItems.length === 0 && !vaultLoading" class="py-12 px-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center flex flex-col items-center gap-2">
           <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
             <span class="material-symbols-outlined text-2xl">folder_open</span>
           </div>
@@ -514,7 +546,7 @@ function formatCountdown(sec: number): string {
         <!-- Vault Items List -->
         <div class="vault-list flex flex-col gap-2.5">
           <div
-            v-for="item in vault.items"
+            v-for="item in vaultItems"
             :key="item.id"
             class="vault-card"
             :class="`vault-card--${item.owner}`"

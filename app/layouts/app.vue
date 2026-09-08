@@ -1,5 +1,18 @@
 <script setup lang="ts">
 const { currentUser, currentHousehold, hasPartner, openSyncModal, openHouseholdDetail } = useAuth()
+const { startTour, shouldTriggerTour } = useWalkthrough()
+
+function handleAvatarClick() {
+  if (shouldTriggerTour('pairing')) {
+    startTour('pairing')
+    return
+  }
+  if (hasPartner.value) {
+    openHouseholdDetail()
+  } else {
+    openSyncModal()
+  }
+}
 
 const userInitial = computed(() => currentUser.value?.avatarInitial || 'U')
 const userRole = computed(() => currentUser.value?.role || 'single')
@@ -47,7 +60,7 @@ const showBottomNav = computed(() => {
         </div>
         <div
           class="header-avatars cursor-pointer"
-          @click="hasPartner ? openHouseholdDetail() : openSyncModal()"
+          @click="handleAvatarClick"
           :title="hasPartner ? 'Detail Keluarga' : 'Singkronkan Pasangan'"
         >
           <!-- User avatar -->
@@ -62,7 +75,7 @@ const showBottomNav = computed(() => {
           <button
             v-else
             class="avatar-add-partner"
-            @click.stop="openSyncModal"
+            @click.stop="handleAvatarClick"
             title="Singkronkan pasangan"
             aria-label="Singkronkan pasangan"
           >
@@ -79,6 +92,9 @@ const showBottomNav = computed(() => {
     <HouseholdDetailModal />
     <HouseholdEditModal />
     <HouseholdUnlinkModal />
+
+    <!-- Interactive Animated Walkthrough Modal -->
+    <WalkthroughModal @open-sync="openSyncModal" />
 
     <!-- Main Content -->
     <main class="app-main" :class="{ 'app-main--no-nav': !showBottomNav }">

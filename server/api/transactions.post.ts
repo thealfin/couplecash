@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
       receiptObjectKey = null,
       billId = null,
       targetDebtAccountId = null,
+      newAccountType = null,
     } = body
 
     if (!amount || Number(amount) <= 0) {
@@ -296,28 +297,36 @@ export default defineEventHandler(async (event) => {
       }
 
       const outstandingDebt = Math.abs(Number(debtAcc.current_balance))
-      if (numAmount > outstandingDebt && outstandingDebt > 0) {
-        throw createError({
-          statusCode: 400,
-          statusMessage: 'Nominal pembayaran melebihi sisa hutang',
-        })
+      const isOverpaid = numAmount > outstandingDebt && outstandingDebt >= 0
+      const newDebtBal = Number(debtAcc.current_balance) + numAmount
+
+      const targetUpdatePayload: Record<string, any> = {
+        current_balance: String(newDebtBal),
+        updated_at: new Date().toISOString(),
       }
 
-      // Credit the target debt account (brings negative balance towards 0)
-      const newDebtBal = Number(debtAcc.current_balance) + numAmount
-      const newDebtStatus = newDebtBal >= 0 ? 'paid_off' : 'partially_paid'
+      if (newDebtBal >= 0) {
+        targetUpdatePayload.debt_status = 'paid_off'
+        // If debt balance is now positive / overpaid, automatically convert from debt to positive asset account
+        if (newDebtBal > 0 || isOverpaid || newAccountType) {
+          const resolvedType = newAccountType || 'bank'
+          targetUpdatePayload.account_type = resolvedType
+          targetUpdatePayload.icon = resolvedType === 'bank' ? 'account_balance' : resolvedType === 'e_wallet' ? 'account_balance_wallet' : resolvedType === 'cash' ? 'payments' : 'savings'
+          debtNoteAppend = ` (Pelunasan Hutang & Konversi Akun: ${debtAcc.name} menjadi ${resolvedType.toUpperCase()})`
+        } else {
+          debtNoteAppend = ` (Pelunasan Hutang: ${debtAcc.name})`
+        }
+      } else {
+        targetUpdatePayload.debt_status = 'partially_paid'
+        debtNoteAppend = ` (Pembayaran Hutang Sebagian: ${debtAcc.name})`
+      }
 
       await admin
         .from('financial_accounts')
-        .update({
-          current_balance: String(newDebtBal),
-          debt_status: newDebtStatus,
-          updated_at: new Date().toISOString(),
-        })
+        .update(targetUpdatePayload)
         .eq('id', debtAcc.id)
 
       finalEventLabel = 'debt_payment'
-      debtNoteAppend = ` (Pelunasan Hutang: ${debtAcc.name})`
     }
 
     // 4. Insert transaction

@@ -15,13 +15,13 @@ export interface VaultCredentialItem {
   updatedAt: string
 }
 
+const items = ref<VaultCredentialItem[]>([])
+const loading = ref(false)
+const error = ref<string | null>(null)
+
 export function useVault() {
   const { getAuthToken } = useAuth()
   const { encryptSecret } = useVaultSecurity()
-
-  const items = ref<VaultCredentialItem[]>([])
-  const loading = ref(false)
-  const error = ref<string | null>(null)
 
   async function fetchVaultItems() {
     if (!import.meta.client) return

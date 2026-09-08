@@ -406,6 +406,16 @@ const trendPath = computed(() => {
 const trendAreaPath = computed(() =>
   trendPath.value ? `${trendPath.value} L100,40 L0,40 Z` : ''
 )
+
+const { startTour, shouldTriggerTour } = useWalkthrough()
+
+onMounted(() => {
+  setTimeout(() => {
+    if (shouldTriggerTour('analitik')) {
+      startTour('analitik')
+    }
+  }, 500)
+})
 </script>
 
 <template>

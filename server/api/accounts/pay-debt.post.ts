@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const body = await readBody(event)
-    const { targetAccountId, sourceAccountId, amount } = body
+    const { targetAccountId, sourceAccountId, amount, newAccountType } = body
 
     if (!targetAccountId || !sourceAccountId || !amount) {
       throw createError({
@@ -67,8 +67,12 @@ export default defineEventHandler(async (event) => {
     }
 
     // 3. Create transaction record for source account (which automatically triggers fn_apply_transaction_to_balance)
+    const newTargetBalance = Number(targetAcc.current_balance) + payAmount
+    const isOverpaid = newTargetBalance > 0
+    const resolvedType = newAccountType || 'bank'
+
     const note = targetAcc.account_type === 'debt'
-      ? `Pembayaran Hutang: ${targetAcc.name}`
+      ? (isOverpaid ? `Pembayaran Hutang & Konversi Akun: ${targetAcc.name} menjadi ${resolvedType.toUpperCase()}` : `Pembayaran Hutang: ${targetAcc.name}`)
       : `Pemulihan Saldo Minus: ${targetAcc.name}`
 
     const todayStr = new Date().toISOString().split('T')[0]
@@ -93,15 +97,25 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: txErr.message })
     }
 
-    // 4. Reduce target debt (add payAmount to debt's negative balance)
-    const newTargetBalance = Number(targetAcc.current_balance) + payAmount
+    // 4. Update target account balance and convert type if overpaid
+    const targetUpdatePayload: Record<string, any> = {
+      current_balance: newTargetBalance,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (newTargetBalance >= 0) {
+      targetUpdatePayload.debt_status = 'paid_off'
+      if (newTargetBalance > 0 || isOverpaid || newAccountType) {
+        targetUpdatePayload.account_type = resolvedType
+        targetUpdatePayload.icon = resolvedType === 'bank' ? 'account_balance' : resolvedType === 'e_wallet' ? 'account_balance_wallet' : resolvedType === 'cash' ? 'payments' : 'savings'
+      }
+    } else {
+      targetUpdatePayload.debt_status = 'partially_paid'
+    }
 
     const { data: updatedTarget, error: updateTgtErr } = await admin
       .from('financial_accounts')
-      .update({
-        current_balance: newTargetBalance,
-        updated_at: new Date().toISOString(),
-      })
+      .update(targetUpdatePayload)
       .eq('id', targetAccountId)
       .select()
       .single()

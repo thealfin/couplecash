@@ -165,7 +165,15 @@ onMounted(async () => {
         if (!name.value && cached.aiData.merchant) name.value = cached.aiData.merchant
         if (rawAmount.value === 0 && cached.aiData.amount) rawAmount.value = Number(cached.aiData.amount)
         if (cached.aiData.suggested_category) category.value = cached.aiData.suggested_category
-        if (cached.aiData.date) dateVal.value = cached.aiData.date
+        if (cached.aiData.date) {
+          const parsedYear = parseInt(cached.aiData.date.split('-')[0], 10)
+          const currentYear = new Date().getFullYear()
+          if (!isNaN(parsedYear) && parsedYear >= currentYear) {
+            dateVal.value = cached.aiData.date
+          } else {
+            dateVal.value = new Date().toISOString().split('T')[0]
+          }
+        }
         if (cached.aiData.confidence) confidenceScore.value = cached.aiData.confidence
         if (cached.aiData.subtotal && !rawSubtotal.value) rawSubtotal.value = Number(cached.aiData.subtotal)
         if (cached.aiData.discount && !rawDiscount.value) rawDiscount.value = Number(cached.aiData.discount)
@@ -295,6 +303,7 @@ async function saveTransaction() {
         name: name.value.trim() || (type.value === 'income' ? 'Pemasukan' : 'Struk Belanja'),
         categoryName: category.value,
         accountName: account.value,
+        accountId: selectedAccountData.value?.id,
         transactionDate: dateVal.value,
         note: note.value.trim(),
         ownerType: owner.value,

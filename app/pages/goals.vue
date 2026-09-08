@@ -389,12 +389,20 @@ async function deleteGoal(goalId: string) {
   }
 }
 
+const { startTour, shouldTriggerTour } = useWalkthrough()
+
 // Ensure goals & accounts are loaded on mount & when auth initializes
 onMounted(async () => {
   if (typeof window !== 'undefined') {
     window.addEventListener('click', closeActionMenu)
   }
   await Promise.all([fetchGoals(), fetchCategories(), fetchAccounts()])
+
+  setTimeout(() => {
+    if (shouldTriggerTour('goals')) {
+      startTour('goals')
+    }
+  }, 500)
 })
 
 watch(

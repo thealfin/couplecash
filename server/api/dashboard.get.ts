@@ -36,7 +36,12 @@ export default defineEventHandler(async (event) => {
 
     // Separate asset accounts from debt accounts
     const assetAccounts = (accounts ?? []).filter((a: any) => a.account_type !== 'debt')
-    const manualDebtAccounts = (accounts ?? []).filter((a: any) => a.account_type === 'debt' && a.debt_status !== 'paid_off')
+    const manualDebtAccounts = (accounts ?? []).filter((a: any) =>
+      a.account_type === 'debt' &&
+      a.debt_status !== 'paid_off' &&
+      a.is_active !== false &&
+      Number(a.current_balance) < 0
+    )
 
     // CRITICAL ACCOUNTING: Total Cash Asset balance only sums positive balances of asset accounts
     const totalBalance = assetAccounts
@@ -51,9 +56,9 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Detected debts: asset accounts that have deficit/negative balance
+    // Detected debts: asset accounts that have deficit/negative balance and are active
     const detectedDebts = assetAccounts
-      .filter((a: any) => Number(a.current_balance) < 0)
+      .filter((a: any) => Number(a.current_balance) < 0 && a.is_active !== false)
       .map((a: any) => ({
         id: a.id,
         name: a.name,
@@ -90,7 +95,6 @@ export default defineEventHandler(async (event) => {
       .select('*, category:categories(id, name, icon)')
       .eq('is_deleted', false)
       .eq('household_id', householdId)
-      .order('transaction_date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(5)
 

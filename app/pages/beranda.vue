@@ -87,6 +87,8 @@ watch([hasPartner, () => currentUser.value?.id], async () => {
   await Promise.all([refresh(), refreshBills()])
 })
 
+const { startTour, shouldTriggerTour } = useWalkthrough()
+
 onMounted(async () => {
   // Ensure real-time freshness when mounting component
   await Promise.all([refresh(), refreshBills()])
@@ -97,6 +99,13 @@ onMounted(async () => {
       refreshBills()
     })
   }
+
+  // Trigger walkthrough tour for Beranda if not seen yet
+  setTimeout(() => {
+    if (shouldTriggerTour('beranda')) {
+      startTour('beranda')
+    }
+  }, 500)
 })
 
 const billTabFilter = ref<'pending' | 'paid'>('pending')
@@ -171,27 +180,55 @@ const activeDebtItem = ref<any>(null)
 const selectedSourceAccountId = ref('')
 const isPayingDebt = ref(false)
 const debtPaymentError = ref('')
+const customDebtPayAmount = ref<number>(0)
+const isDebtOverpayModalOpen = ref(false)
+const newDebtAccountType = ref<'bank' | 'e_wallet' | 'cash' | 'deposito'>('bank')
+
+const debtAccountTypeOptions = [
+  { value: 'bank', label: 'Rekening Bank', desc: 'Ubah menjadi saldo rekening tabungan', icon: 'account_balance' },
+  { value: 'e_wallet', label: 'E-Wallet', desc: 'Ubah menjadi dompet digital', icon: 'account_balance_wallet' },
+  { value: 'cash', label: 'Kas Tunai', desc: 'Ubah menjadi uang tunai di dompet', icon: 'payments' },
+  { value: 'deposito', label: 'Deposito', desc: 'Ubah menjadi simpanan / investasi', icon: 'savings' },
+]
 
 function openDebtModal(item: any) {
   activeDebtItem.value = item
+  customDebtPayAmount.value = item.amount
   selectedSourceAccountId.value = activeAssetAccounts.value[0]?.id || ''
   debtPaymentError.value = ''
   isDebtModalOpen.value = true
 }
 
-async function confirmDebtPayment() {
+function handleDebtPaymentSubmit() {
+  if (!activeDebtItem.value || !selectedSourceAccountId.value) return
+  const amountToPay = customDebtPayAmount.value || activeDebtItem.value.amount
+  if (amountToPay > activeDebtItem.value.amount) {
+    isDebtOverpayModalOpen.value = true
+    return
+  }
+  executeDebtPayment()
+}
+
+async function confirmOverpayAndExecute() {
+  isDebtOverpayModalOpen.value = false
+  await executeDebtPayment(newDebtAccountType.value)
+}
+
+async function executeDebtPayment(chosenNewType?: string) {
   if (!activeDebtItem.value || !selectedSourceAccountId.value) return
   isPayingDebt.value = true
   debtPaymentError.value = ''
   try {
     const t = await getAuthToken()
+    const amountToPay = customDebtPayAmount.value || activeDebtItem.value.amount
     await $fetch('/api/accounts/pay-debt', {
       method: 'POST',
       headers: t ? { Authorization: `Bearer ${t}` } : {},
       body: {
         targetAccountId: activeDebtItem.value.sourceAccountId,
         sourceAccountId: selectedSourceAccountId.value,
-        amount: activeDebtItem.value.amount,
+        amount: amountToPay,
+        newAccountType: chosenNewType || null,
       },
     })
     isDebtModalOpen.value = false
@@ -255,67 +292,7 @@ async function confirmPayBill() {
   }
 }
 
-// Create Bill modal state
-const isCreateBillModalOpen = ref(false)
-const newBillForm = ref({
-  name: '',
-  amount: null as number | null,
-  dueDate: '',
-  ownerType: 'bersama' as 'bersama' | 'suami' | 'istri' | 'sendiri',
-  reminderDaysBefore: 3,
-  isRecurring: true
-})
-const isSubmittingCreateBill = ref(false)
-const createBillError = ref('')
 
-function openCreateBillModal() {
-  const targetDate = new Date()
-  targetDate.setDate(targetDate.getDate() + 3)
-  const y = targetDate.getFullYear()
-  const m = String(targetDate.getMonth() + 1).padStart(2, '0')
-  const d = String(targetDate.getDate()).padStart(2, '0')
-  const isSingle = currentUser.value?.role === 'single'
-  newBillForm.value = {
-    name: '',
-    amount: null,
-    dueDate: `${y}-${m}-${d}`,
-    ownerType: isSingle ? 'sendiri' : 'bersama',
-    reminderDaysBefore: 3,
-    isRecurring: true
-  }
-  createBillError.value = ''
-  isCreateBillModalOpen.value = true
-}
-
-async function confirmCreateBill() {
-  if (!newBillForm.value.name || !newBillForm.value.amount || !newBillForm.value.dueDate) {
-    createBillError.value = 'Nama, nominal, dan tanggal jatuh tempo wajib diisi'
-    return
-  }
-  isSubmittingCreateBill.value = true
-  createBillError.value = ''
-  try {
-    const t = await getAuthToken()
-    await $fetch('/api/bills', {
-      method: 'POST',
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
-      body: {
-        name: newBillForm.value.name,
-        amount: newBillForm.value.amount,
-        dueDate: newBillForm.value.dueDate,
-        ownerType: newBillForm.value.ownerType,
-        reminderDaysBefore: newBillForm.value.reminderDaysBefore,
-        isRecurring: newBillForm.value.isRecurring
-      }
-    })
-    isCreateBillModalOpen.value = false
-    await refreshBills()
-  } catch (err: any) {
-    createBillError.value = err?.data?.message || err?.statusMessage || err?.message || 'Gagal menambahkan tagihan'
-  } finally {
-    isSubmittingCreateBill.value = false
-  }
-}
 
 function stripClass(owner: string) {
   return owner === 'bersama' ? 'primary' : owner
@@ -627,7 +604,7 @@ function getAccountDisplayBalance(accText: string) {
             v-if="billTabFilter === 'pending'"
             type="button"
             class="mt-2.5 text-xs text-primary font-bold hover:underline flex items-center gap-1 cursor-pointer"
-            @click="openCreateBillModal"
+            @click="navigateTo('/akun/tagihan')"
           >
             <span class="material-symbols-outlined text-[14px]">add</span> Tambah Tagihan Baru
           </button>
@@ -636,7 +613,7 @@ function getAccountDisplayBalance(accText: string) {
     </section>
 
     <!-- Hutang & Kewajiban Section -->
-    <section class="section px-page" id="section-hutang">
+    <section class="section px-page" id="section-hutang" v-if="debtItems.length > 0">
       <div class="flex items-center justify-between pb-1">
         <div class="flex items-center gap-2">
           <h2 class="text-base font-bold text-on-surface">Hutang &amp; Kewajiban</h2>
@@ -797,9 +774,27 @@ function getAccountDisplayBalance(accText: string) {
           </button>
         </div>
 
-        <div class="bg-surface-container-low p-3 rounded-2xl flex items-center justify-between">
-          <span class="text-xs text-muted">Tagihan / Nominal Minus</span>
-          <span class="font-bold text-rose-600 text-base tabular-nums">{{ activeDebtItem.amountText }}</span>
+        <!-- Nominal Input Box -->
+        <div class="p-3 bg-surface-container-low rounded-2xl flex flex-col gap-1.5 border border-outline-variant/20">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-muted">Sisa Hutang Saat Ini</span>
+            <span class="font-bold text-rose-600 text-xs tabular-nums">{{ activeDebtItem.amountText }}</span>
+          </div>
+          <div class="flex items-center justify-between pt-1 border-t border-outline-variant/10">
+            <label class="text-xs font-bold text-on-surface">Nominal Bayar</label>
+            <div class="flex items-center gap-1">
+              <span class="text-xs text-muted font-bold">Rp</span>
+              <input
+                type="number"
+                v-model.number="customDebtPayAmount"
+                class="w-32 text-right font-bold text-xs bg-surface rounded-xl px-2.5 py-1 border border-outline-variant/40 focus:outline-none focus:ring-2 focus:ring-primary tabular-nums"
+                min="1"
+              />
+            </div>
+          </div>
+          <span v-if="customDebtPayAmount > activeDebtItem.amount" class="text-[10px] text-emerald-600 font-bold">
+            💡 Melebihi sisa hutang (+Rp {{ (customDebtPayAmount - activeDebtItem.amount).toLocaleString('id-ID') }}). Sisa kelebihan akan dialihkan menjadi saldo rekening!
+          </span>
         </div>
 
         <!-- Source Account Selection -->
@@ -836,13 +831,115 @@ function getAccountDisplayBalance(accText: string) {
         <button
           type="button"
           class="w-full py-3 bg-primary text-white rounded-xl text-xs font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          :disabled="isPayingDebt || !selectedSourceAccountId"
-          @click="confirmDebtPayment"
+          :disabled="isPayingDebt || !selectedSourceAccountId || customDebtPayAmount <= 0"
+          @click="handleDebtPaymentSubmit"
         >
           <span v-if="isPayingDebt" class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
           <span v-else class="material-symbols-outlined text-[18px]">verified</span>
           <span>Konfirmasi Pembayaran</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Modal Dialog: Konfirmasi Kelebihan Pelunasan Hutang (Beranda) -->
+    <div
+      v-if="isDebtOverpayModalOpen && activeDebtItem"
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 transition-opacity duration-300 animate-fade-in"
+      @click.self="isDebtOverpayModalOpen = false"
+    >
+      <div class="bg-surface-container-lowest w-full max-w-md rounded-3xl p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant/30 max-h-[90vh] overflow-y-auto m-auto">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-2 border-b border-outline-variant/20">
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-[22px]">price_change</span>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-on-surface">Pelunasan Melebihi Sisa Hutang</h3>
+              <p class="text-[11px] text-muted">Konfirmasi pengalihan sisa kelebihan dana</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="w-7 h-7 rounded-full bg-surface-container hover:bg-surface-variant flex items-center justify-center text-muted hover:text-on-surface transition-colors cursor-pointer"
+            @click="isDebtOverpayModalOpen = false"
+          >
+            <span class="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+
+        <!-- Info Breakdown Box -->
+        <div class="p-3.5 bg-surface rounded-2xl border border-outline-variant/20 flex flex-col gap-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted">Sisa Hutang "{{ activeDebtItem.name }}"</span>
+            <span class="font-bold text-rose-600">Rp {{ activeDebtItem.amount.toLocaleString('id-ID') }}</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted">Nominal Dibayarkan</span>
+            <span class="font-bold text-on-surface">Rp {{ customDebtPayAmount.toLocaleString('id-ID') }}</span>
+          </div>
+          <div class="pt-2 border-t border-outline-variant/20 flex items-center justify-between">
+            <div>
+              <span class="text-xs font-bold text-emerald-600 block">Kelebihan Pembayaran</span>
+              <span class="text-[10px] text-muted">Akan otomatis menjadi saldo rekening</span>
+            </div>
+            <span class="text-sm font-extrabold text-emerald-600 tabular-nums">
+              +Rp {{ (customDebtPayAmount - activeDebtItem.amount).toLocaleString('id-ID') }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Opsi Pilihan Jenis Pos Akun Baru -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-on-surface">
+            Pilih Jenis Pos Akun Baru untuk "{{ activeDebtItem.name }}":
+          </label>
+          <div class="grid grid-cols-1 gap-2">
+            <button
+              v-for="opt in debtAccountTypeOptions"
+              :key="opt.value"
+              type="button"
+              class="p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer"
+              :class="newDebtAccountType === opt.value
+                ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                : 'border-outline-variant/30 bg-surface hover:bg-surface-container-low'"
+              @click="newDebtAccountType = opt.value as any"
+            >
+              <div
+                class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                :class="newDebtAccountType === opt.value ? 'bg-primary text-white' : 'bg-surface-container text-muted'"
+              >
+                <span class="material-symbols-outlined text-[19px]">{{ opt.icon }}</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-on-surface">{{ opt.label }}</p>
+                <p class="text-[10px] text-muted">{{ opt.desc }}</p>
+              </div>
+              <span class="material-symbols-outlined text-[18px]" :class="newDebtAccountType === opt.value ? 'text-primary' : 'text-transparent'">
+                check_circle
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-surface-container hover:bg-surface-variant text-xs font-semibold text-muted hover:text-on-surface transition-colors cursor-pointer"
+            @click="isDebtOverpayModalOpen = false"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+            @click="confirmOverpayAndExecute"
+          >
+            <span class="material-symbols-outlined text-[16px]">check</span>
+            <span>Konfirmasi &amp; Ubah Pos Akun</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -959,166 +1056,7 @@ function getAccountDisplayBalance(accText: string) {
       </div>
     </div>
 
-    <!-- Modal Dialog: Tambah Tagihan Baru -->
-    <div
-      v-if="isCreateBillModalOpen"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 transition-opacity duration-300 animate-fade-in"
-      @click.self="isCreateBillModalOpen = false"
-    >
-      <div class="bg-surface-container-lowest w-full max-w-md rounded-3xl p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant/30 max-h-[90vh] overflow-y-auto">
-        <!-- Header -->
-        <div class="flex items-center justify-between pb-2 border-b border-outline-variant/20">
-          <div class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-              <span class="material-symbols-outlined text-[20px]">add_circle</span>
-            </div>
-            <div>
-              <h3 class="text-sm font-bold text-on-surface">Tambah Tagihan Baru</h3>
-              <p class="text-[11px] text-muted">Jadwalkan tagihan &amp; langganan rutin</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            class="w-7 h-7 rounded-full bg-surface-container hover:bg-surface-variant flex items-center justify-center text-muted hover:text-on-surface transition-colors cursor-pointer"
-            @click="isCreateBillModalOpen = false"
-          >
-            <span class="material-symbols-outlined text-[16px]">close</span>
-          </button>
-        </div>
 
-        <form @submit.prevent="confirmCreateBill" class="flex flex-col gap-3">
-          <!-- Nama Tagihan -->
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-on-surface">Nama Tagihan / Langganan</label>
-            <input
-              v-model="newBillForm.name"
-              type="text"
-              placeholder="Contoh: Listrik PLN, BPJS, Indihome, Netflix"
-              required
-              class="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-outline-variant/50 text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <!-- Nominal -->
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-on-surface">Nominal Tagihan (Rp)</label>
-            <input
-              v-model.number="newBillForm.amount"
-              type="number"
-              placeholder="Contoh: 450000"
-              required
-              min="1"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-outline-variant/50 text-xs tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <!-- Tanggal Jatuh Tempo -->
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-on-surface">Tanggal Jatuh Tempo</label>
-            <input
-              v-model="newBillForm.dueDate"
-              type="date"
-              required
-              class="w-full px-3.5 py-2.5 rounded-xl bg-surface border border-outline-variant/50 text-xs focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
-            />
-          </div>
-
-          <!-- Kepemilikan Tagihan -->
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-on-surface">Kepemilikan</label>
-            <div v-if="currentUser?.role === 'single'" class="grid grid-cols-1">
-              <button
-                type="button"
-                class="py-2.5 px-3 rounded-xl border border-primary bg-primary/10 text-primary font-bold text-xs flex items-center justify-center gap-1.5 cursor-default"
-              >
-                <span class="material-symbols-outlined text-[16px]">person</span>
-                <span>Sendiri (Pribadi)</span>
-              </button>
-            </div>
-            <div v-else class="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                class="py-2 px-1 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer"
-                :class="newBillForm.ownerType === 'bersama' ? 'border-primary bg-primary/10 text-primary font-bold' : 'border-outline-variant/40 bg-surface text-muted'"
-                @click="newBillForm.ownerType = 'bersama'"
-              >
-                <span>Bersama</span>
-              </button>
-              <button
-                type="button"
-                class="py-2 px-1 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer"
-                :class="newBillForm.ownerType === 'suami' ? 'border-suami bg-suami/10 text-suami font-bold' : 'border-outline-variant/40 bg-surface text-muted'"
-                @click="newBillForm.ownerType = 'suami'"
-              >
-                <span>{{ suamiName }}</span>
-              </button>
-              <button
-                type="button"
-                class="py-2 px-1 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer"
-                :class="newBillForm.ownerType === 'istri' ? 'border-istri bg-istri/10 text-istri font-bold' : 'border-outline-variant/40 bg-surface text-muted'"
-                @click="newBillForm.ownerType = 'istri'"
-              >
-                <span>{{ istriName }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Pengingat H- & Berulang -->
-          <div class="grid grid-cols-2 gap-3 pt-1">
-            <div class="flex flex-col gap-1">
-              <label class="text-xs font-bold text-on-surface">Ingatkan (H-hari)</label>
-              <select
-                v-model.number="newBillForm.reminderDaysBefore"
-                class="w-full px-3 py-2 rounded-xl bg-surface border border-outline-variant/50 text-xs cursor-pointer"
-              >
-                <option :value="1">H-1 Hari</option>
-                <option :value="2">H-2 Hari</option>
-                <option :value="3">H-3 Hari (Standar)</option>
-                <option :value="5">H-5 Hari</option>
-                <option :value="7">H-7 Hari (1 Minggu)</option>
-              </select>
-            </div>
-
-            <div class="flex flex-col justify-end">
-              <label class="flex items-center gap-2 p-2 bg-surface rounded-xl border border-outline-variant/30 cursor-pointer">
-                <input type="checkbox" v-model="newBillForm.isRecurring" class="rounded text-primary focus:ring-primary cursor-pointer" />
-                <span class="text-xs font-medium text-on-surface">Tagihan Bulanan</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Error Alert -->
-          <div
-            v-if="createBillError"
-            class="flex items-center gap-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs"
-          >
-            <span class="material-symbols-outlined text-[16px] shrink-0">error</span>
-            <span>{{ createBillError }}</span>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex items-center justify-end gap-2 pt-2">
-            <button
-              type="button"
-              class="px-4 py-2 rounded-xl bg-surface-container hover:bg-surface-variant text-xs font-semibold text-muted hover:text-on-surface transition-colors cursor-pointer"
-              @click="isCreateBillModalOpen = false"
-              :disabled="isSubmittingCreateBill"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              class="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
-              :disabled="isSubmittingCreateBill"
-            >
-              <span v-if="isSubmittingCreateBill" class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
-              <span v-else class="material-symbols-outlined text-[16px]">save</span>
-              <span>{{ isSubmittingCreateBill ? 'Menyimpan...' : 'Simpan Tagihan' }}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
 
   </div>
 </template>

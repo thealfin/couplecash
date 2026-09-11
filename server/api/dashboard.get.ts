@@ -112,7 +112,7 @@ export default defineEventHandler(async (event) => {
     let monthExpense = 0
     for (const r of (thisMonthTxs ?? [])) {
       if (r.type === 'income') monthIncome += Number(r.amount)
-      else monthExpense += Number(r.amount)
+      else if (r.type === 'expense' || r.type === 'debt') monthExpense += Number(r.amount)
     }
 
     let monthlyChangePct = 0
@@ -196,6 +196,7 @@ export default defineEventHandler(async (event) => {
       })),
     }
   } catch (err: any) {
+    if (err.statusCode) throw err
     console.error('[dashboard.get] error:', err?.message ?? err)
     throw createError({ statusCode: 500, statusMessage: err?.message ?? 'Internal server error' })
   }

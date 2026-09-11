@@ -9,7 +9,7 @@ const route = useRoute()
 // ── Top Segmented View ──
 const currentView = ref<'calendar' | 'trends'>(route.query.tab === 'trends' ? 'trends' : 'calendar')
 
-// ── Calendar State ──
+// ── Calendar & Period State ──
 const monthNamesId = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -17,8 +17,27 @@ const monthNamesId = [
 const dayNamesId = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 
 const realToday = new Date()
-const currentYear = ref(realToday.getFullYear())
-const currentMonth = ref(realToday.getMonth() + 1) // 1-12
+const activeDate = ref<Date>(new Date())
+const showExportModal = ref(false)
+
+type PeriodFilter = '1w' | '2w' | '1m' | '1y'
+const periodFilter = ref<PeriodFilter>('1m') // 1 Bulan as Default
+
+const periodOptions = computed(() => {
+  if (currentView.value === 'calendar') {
+    return [
+      { key: '1w' as PeriodFilter, label: '1 Minggu' },
+      { key: '2w' as PeriodFilter, label: '2 Minggu' },
+      { key: '1m' as PeriodFilter, label: '1 Bulan' },
+    ]
+  }
+  return [
+    { key: '1w' as PeriodFilter, label: '1 Minggu' },
+    { key: '2w' as PeriodFilter, label: '2 Minggu' },
+    { key: '1m' as PeriodFilter, label: '1 Bulan' },
+    { key: '1y' as PeriodFilter, label: '1 Tahun' },
+  ]
+})
 
 function formatDateKey(d: Date): string {
   const y = d.getFullYear()
@@ -27,10 +46,58 @@ function formatDateKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+const currentYear = computed(() => activeDate.value.getFullYear())
+const currentMonth = computed(() => activeDate.value.getMonth() + 1) // 1-12
+const activeMonthName = computed(() => monthNamesId[currentMonth.value - 1] || 'Bulan Ini')
+
+// Adaptive Date Range Math (starts on Sunday)
+const periodDateRange = computed(() => {
+  const base = new Date(activeDate.value)
+  const y = base.getFullYear()
+  const m = base.getMonth()
+
+  if (periodFilter.value === '1w') {
+    const dayOfWeek = base.getDay() // 0 = Sun
+    const start = new Date(base)
+    start.setDate(base.getDate() - dayOfWeek)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    const sStr = formatDateKey(start)
+    const eStr = formatDateKey(end)
+    const title = `${start.getDate()} ${monthNamesId[start.getMonth()].slice(0, 3)} - ${end.getDate()} ${monthNamesId[end.getMonth()].slice(0, 3)} ${end.getFullYear()}`
+    return { start, end, startDateStr: sStr, endDateStr: eStr, periodTitle: title }
+  } else if (periodFilter.value === '2w') {
+    const dayOfWeek = base.getDay()
+    const start = new Date(base)
+    start.setDate(base.getDate() - dayOfWeek - 7)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 13)
+    const sStr = formatDateKey(start)
+    const eStr = formatDateKey(end)
+    const title = `${start.getDate()} ${monthNamesId[start.getMonth()].slice(0, 3)} - ${end.getDate()} ${monthNamesId[end.getMonth()].slice(0, 3)} ${end.getFullYear()}`
+    return { start, end, startDateStr: sStr, endDateStr: eStr, periodTitle: title }
+  } else if (periodFilter.value === '1y') {
+    const start = new Date(y, 0, 1)
+    const end = new Date(y, 11, 31)
+    const sStr = formatDateKey(start)
+    const eStr = formatDateKey(end)
+    const title = `Tahun ${y}`
+    return { start, end, startDateStr: sStr, endDateStr: eStr, periodTitle: title }
+  } else {
+    // 1 Bulan (Default)
+    const start = new Date(y, m, 1)
+    const end = new Date(y, m + 1, 0)
+    const sStr = formatDateKey(start)
+    const eStr = formatDateKey(end)
+    const title = `${monthNamesId[m]} ${y}`
+    return { start, end, startDateStr: sStr, endDateStr: eStr, periodTitle: title }
+  }
+})
+
 const todayKey = formatDateKey(realToday)
 const selectedDateStr = ref(todayKey)
 
-// Fetch Calendar Data for currentYear & currentMonth
+// Fetch Calendar Data for current period
 const calendarLoading = ref(false)
 const calendarDailyData = ref<Record<string, {
   income: number
@@ -71,10 +138,6 @@ const selectableAccountsForBill = computed(() => {
   })
 })
 
-const selectedPayAccount = computed(() => {
-  return activeAssetAccounts.value.find((a: any) => a.id === selectedPayAccountId.value)
-})
-
 async function openPayBillModal(bill: any) {
   if (activeAssetAccounts.value.length === 0) {
     await fetchAccounts()
@@ -110,30 +173,26 @@ async function confirmPayBill() {
   }
 }
 
-function getBillIcon(name: string) {
-  const n = (name || '').toLowerCase()
-  if (n.includes('listrik') || n.includes('pln') || n.includes('token')) return 'bolt'
-  if (n.includes('internet') || n.includes('wifi') || n.includes('indihome') || n.includes('biznet') || n.includes('myrepublic')) return 'wifi'
-  if (n.includes('air') || n.includes('pdam')) return 'water_drop'
-  if (n.includes('bpjs') || n.includes('asuransi') || n.includes('kesehatan')) return 'health_and_safety'
-  if (n.includes('netflix') || n.includes('spotify') || n.includes('disney') || n.includes('youtube')) return 'subscriptions'
-  if (n.includes('sewa') || n.includes('kontrakan') || n.includes('kos') || n.includes('apartemen')) return 'home_work'
-  if (n.includes('kartu kredit') || n.includes('cc') || n.includes('cicilan')) return 'credit_card'
-  if (n.includes('pulsa') || n.includes('paket data') || n.includes('telkomsel') || n.includes('indosat') || n.includes('xl')) return 'smartphone'
-  return 'receipt_long'
-}
-
 async function fetchCalendarData() {
   calendarLoading.value = true
   try {
     const token = await getAuthToken()
+    const { startDateStr, endDateStr } = periodDateRange.value
+
     const res = await $fetch<{
       success: boolean
       year: number
       month: number
+      startDate?: string
+      endDate?: string
       dailyData: Record<string, any>
     }>('/api/analytics/calendar', {
-      query: { year: currentYear.value, month: currentMonth.value },
+      query: {
+        year: currentYear.value,
+        month: currentMonth.value,
+        startDate: startDateStr,
+        endDate: endDateStr,
+      },
       headers: token ? { Authorization: `Bearer ${token}` } : {}
     })
     calendarDailyData.value = res.dailyData || {}
@@ -144,49 +203,22 @@ async function fetchCalendarData() {
   }
 }
 
-onMounted(() => {
-  fetchCalendarData()
-  fetchAccounts()
-})
-
-// Watch year/month change
-watch([currentYear, currentMonth], () => {
-  fetchCalendarData()
-})
-
-const isCurrentMonthActive = computed(() => {
-  return currentYear.value === realToday.getFullYear() && currentMonth.value === (realToday.getMonth() + 1)
-})
-
-function prevMonth() {
-  if (currentMonth.value === 1) {
-    currentMonth.value = 12
-    currentYear.value -= 1
-  } else {
-    currentMonth.value -= 1
+// Watch date range or period changes
+watch(
+  [() => periodDateRange.value.startDateStr, () => periodDateRange.value.endDateStr, periodFilter],
+  () => {
+    fetchCalendarData()
   }
+)
+
+function setPeriod(p: PeriodFilter) {
+  periodFilter.value = p
+  if (p === '1w' || p === '2w') activeFilter.value = 'mingguan'
+  else if (p === '1m') activeFilter.value = 'bulanan'
+  else if (p === '1y') activeFilter.value = 'tahunan'
 }
 
-function nextMonth() {
-  if (currentMonth.value === 12) {
-    currentMonth.value = 1
-    currentYear.value += 1
-  } else {
-    currentMonth.value += 1
-  }
-}
-
-function goToToday() {
-  currentYear.value = realToday.getFullYear()
-  currentMonth.value = realToday.getMonth() + 1
-  selectedDateStr.value = todayKey
-}
-
-function selectDate(key: string) {
-  selectedDateStr.value = key
-}
-
-// Calendar Grid Calculations
+// Calendar Grid Calculations (1 Minggu: 7 cells, 2 Minggu: 14 cells, 1 Bulan: full month grid)
 interface CalendarCell {
   dayNum: number
   dateKey: string
@@ -196,25 +228,67 @@ interface CalendarCell {
   hasIncome: boolean
   hasExpense: boolean
   hasDebt: boolean
-  hasBill: boolean
 }
 
 const calendarCells = computed<CalendarCell[]>(() => {
   const cells: CalendarCell[] = []
-  const y = currentYear.value
-  const m = currentMonth.value // 1-12
+  const { start } = periodDateRange.value
 
-  const firstDayObj = new Date(y, m - 1, 1)
-  const lastDayObj = new Date(y, m, 0)
-  const totalDays = lastDayObj.getDate()
-  const startingDayOfWeek = firstDayObj.getDay() // 0 = Sun
+  // 1 Minggu: 7 hari
+  if (periodFilter.value === '1w') {
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      const dKey = formatDateKey(d)
+      const data = calendarDailyData.value[dKey]
+      cells.push({
+        dayNum: d.getDate(),
+        dateKey: dKey,
+        isCurrentMonth: true,
+        isSelected: dKey === selectedDateStr.value,
+        isToday: dKey === todayKey,
+        hasIncome: (data?.income ?? 0) > 0,
+        hasExpense: (data?.expense ?? 0) > 0,
+        hasDebt: (data?.debt ?? 0) > 0,
+      })
+    }
+    return cells
+  }
 
-  // Leading days from previous month
-  const prevMonthLastDay = new Date(y, m - 1, 0).getDate()
-  for (let i = 0; i < startingDayOfWeek; i++) {
-    const dayNum = prevMonthLastDay - startingDayOfWeek + i + 1
-    const prevMonthNum = m === 1 ? 12 : m - 1
-    const prevYearNum = m === 1 ? y - 1 : y
+  // 2 Minggu: 14 hari
+  if (periodFilter.value === '2w') {
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + i)
+      const dKey = formatDateKey(d)
+      const data = calendarDailyData.value[dKey]
+      cells.push({
+        dayNum: d.getDate(),
+        dateKey: dKey,
+        isCurrentMonth: true,
+        isSelected: dKey === selectedDateStr.value,
+        isToday: dKey === todayKey,
+        hasIncome: (data?.income ?? 0) > 0,
+        hasExpense: (data?.expense ?? 0) > 0,
+        hasDebt: (data?.debt ?? 0) > 0,
+      })
+    }
+    return cells
+  }
+
+  // 1 Bulan: Full month calendar grid with leading & trailing slots
+  const y = activeDate.value.getFullYear()
+  const m = activeDate.value.getMonth()
+  const firstDayOfMonth = new Date(y, m, 1)
+  const totalDays = new Date(y, m + 1, 0).getDate()
+  const startingDayOfWeek = firstDayOfMonth.getDay() // 0 = Minggu
+
+  // Leading days
+  const prevMonthTotalDays = new Date(y, m, 0).getDate()
+  for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+    const dayNum = prevMonthTotalDays - i
+    const prevMonthNum = m === 0 ? 12 : m
+    const prevYearNum = m === 0 ? y - 1 : y
     const dKey = `${prevYearNum}-${String(prevMonthNum).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
     const data = calendarDailyData.value[dKey]
     cells.push({
@@ -226,16 +300,15 @@ const calendarCells = computed<CalendarCell[]>(() => {
       hasIncome: (data?.income ?? 0) > 0,
       hasExpense: (data?.expense ?? 0) > 0,
       hasDebt: (data?.debt ?? 0) > 0,
-      hasBill: !!(data?.hasBill || (data?.bills && data.bills.length > 0)),
     })
   }
 
-  // Days in active month
-  for (let d = 1; d <= totalDays; d++) {
-    const dKey = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  // Days of current month
+  for (let day = 1; day <= totalDays; day++) {
+    const dKey = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
     const data = calendarDailyData.value[dKey]
     cells.push({
-      dayNum: d,
+      dayNum: day,
       dateKey: dKey,
       isCurrentMonth: true,
       isSelected: dKey === selectedDateStr.value,
@@ -243,7 +316,6 @@ const calendarCells = computed<CalendarCell[]>(() => {
       hasIncome: (data?.income ?? 0) > 0,
       hasExpense: (data?.expense ?? 0) > 0,
       hasDebt: (data?.debt ?? 0) > 0,
-      hasBill: !!(data?.hasBill || (data?.bills && data.bills.length > 0)),
     })
   }
 
@@ -251,8 +323,8 @@ const calendarCells = computed<CalendarCell[]>(() => {
   const totalFilled = startingDayOfWeek + totalDays
   const remainingSlots = totalFilled % 7 === 0 ? 0 : 7 - (totalFilled % 7)
   for (let j = 1; j <= remainingSlots; j++) {
-    const nextMonthNum = m === 12 ? 1 : m + 1
-    const nextYearNum = m === 12 ? y + 1 : y
+    const nextMonthNum = m === 11 ? 1 : m + 2
+    const nextYearNum = m === 11 ? y + 1 : y
     const dKey = `${nextYearNum}-${String(nextMonthNum).padStart(2, '0')}-${String(j).padStart(2, '0')}`
     const data = calendarDailyData.value[dKey]
     cells.push({
@@ -264,12 +336,44 @@ const calendarCells = computed<CalendarCell[]>(() => {
       hasIncome: (data?.income ?? 0) > 0,
       hasExpense: (data?.expense ?? 0) > 0,
       hasDebt: (data?.debt ?? 0) > 0,
-      hasBill: !!(data?.hasBill || (data?.bills && data.bills.length > 0)),
     })
   }
 
   return cells
 })
+
+function prevPeriod() {
+  const d = new Date(activeDate.value)
+  if (periodFilter.value === '1w') {
+    d.setDate(d.getDate() - 7)
+  } else if (periodFilter.value === '2w') {
+    d.setDate(d.getDate() - 14)
+  } else {
+    d.setMonth(d.getMonth() - 1)
+  }
+  activeDate.value = d
+}
+
+function nextPeriod() {
+  const d = new Date(activeDate.value)
+  if (periodFilter.value === '1w') {
+    d.setDate(d.getDate() + 7)
+  } else if (periodFilter.value === '2w') {
+    d.setDate(d.getDate() + 14)
+  } else {
+    d.setMonth(d.getMonth() + 1)
+  }
+  activeDate.value = d
+}
+
+function goToToday() {
+  activeDate.value = new Date()
+  selectedDateStr.value = todayKey
+}
+
+function selectDate(key: string) {
+  selectedDateStr.value = key
+}
 
 // Selected Date Summary
 const selectedDateInfo = computed(() => {
@@ -295,7 +399,7 @@ const selectedDateInfo = computed(() => {
 })
 
 function formatRupiah(num: number): string {
-  return 'Rp ' + Math.abs(num).toLocaleString('id-ID')
+  return 'Rp ' + Math.abs(num || 0).toLocaleString('id-ID')
 }
 
 // ── Trends & Category State ──
@@ -304,12 +408,6 @@ type CategoryType = 'expense' | 'income'
 
 const activeFilter = ref<Period>('bulanan')
 const activeType = ref<CategoryType>('expense')
-
-const filters: Array<{ key: Period; label: string }> = [
-  { key: 'mingguan', label: 'Minggu Ini' },
-  { key: 'bulanan', label: 'Bulan Ini' },
-  { key: 'tahunan', label: 'Tahun Ini' },
-]
 
 interface CategoryItem {
   icon: string
@@ -376,7 +474,24 @@ watch(activeFilter, () => {
 })
 
 onMounted(() => {
+  fetchCalendarData()
+  fetchAccounts()
   fetchAnalyticsData()
+})
+
+// Counts of transactions per category in the current period
+const categoryUsageCounts = computed(() => {
+  const counts: Record<string, number> = {}
+  for (const day of Object.values(calendarDailyData.value)) {
+    if (day.transactions) {
+      for (const tx of day.transactions) {
+        if (tx.category) {
+          counts[tx.category] = (counts[tx.category] || 0) + 1
+        }
+      }
+    }
+  }
+  return counts
 })
 
 const categories = computed(() => {
@@ -386,26 +501,43 @@ const categories = computed(() => {
   return analyticsData.value?.expenseCategories ?? []
 })
 
-const trendPoints = computed(() => {
-  if (activeType.value === 'income') {
-    return analyticsData.value?.incomeTrend ?? []
+// Clean Color Palette for Categories
+const categoryDotColors = [
+  '#3B82F6', '#F59E0B', '#06B6D4', '#64748B', '#EC4899', '#10B981', '#8B5CF6', '#F43F5E'
+]
+
+// Porsi Belanja Keluarga Computations
+const totalExpense = computed(() => analyticsData.value?.expenseTotal ?? 0)
+const totalIncome = computed(() => analyticsData.value?.incomeTotal ?? 0)
+const netCashflow = computed(() => totalIncome.value - totalExpense.value)
+
+const suamiExpense = computed(() => analyticsData.value?.contribution?.suami ?? 0)
+const suamiPct = computed(() => analyticsData.value?.contribution?.suamiPct ?? 0)
+
+const istriExpense = computed(() => analyticsData.value?.contribution?.istri ?? 0)
+const istriPct = computed(() => analyticsData.value?.contribution?.istriPct ?? 0)
+
+const bersamaExpense = computed(() => {
+  const diff = totalExpense.value - (suamiExpense.value + istriExpense.value)
+  return Math.max(0, diff)
+})
+const bersamaPct = computed(() => {
+  if (totalExpense.value <= 0) return 0
+  const pct = Math.round((bersamaExpense.value / totalExpense.value) * 100)
+  return Math.min(100, Math.max(0, pct))
+})
+
+// User & Partner Initials for Header Avatar
+const userInitial = computed(() => {
+  return currentUser.value?.fullName?.charAt(0)?.toUpperCase() || (currentUser.value?.role === 'istri' ? 'I' : 'S')
+})
+
+const partnerInitial = computed(() => {
+  if (currentUser.value?.role === 'suami') {
+    return currentHousehold.value?.istri?.initial || 'I'
   }
-  return analyticsData.value?.expenseTrend ?? []
+  return currentHousehold.value?.suami?.initial || 'S'
 })
-
-const trendPath = computed(() => {
-  const points = trendPoints.value
-  if (points.length < 2) return ''
-  const max = Math.max(...points.map((p) => p.total), 1)
-  const stepX = 100 / (points.length - 1)
-  return points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * stepX).toFixed(1)},${(38 - (p.total / max) * 34).toFixed(1)}`)
-    .join(' ')
-})
-
-const trendAreaPath = computed(() =>
-  trendPath.value ? `${trendPath.value} L100,40 L0,40 Z` : ''
-)
 
 const { startTour, shouldTriggerTour } = useWalkthrough()
 
@@ -419,691 +551,523 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="analitik-page animate-fade-in pb-20">
+  <div class="analitik-page animate-fade-in pb-28 px-4 pt-4 space-y-3.5">
 
-    <!-- Top Segmented Nav Toggle -->
-    <div class="px-4 pt-3 pb-1">
-      <div class="bg-surface-container p-1 rounded-2xl flex items-center text-xs font-semibold text-muted shadow-inner">
+    <!-- Top Navigation Header (Analitik + Profile Avatars) -->
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-extrabold text-on-background tracking-tight">Analitik</h1>
+      
+      <!-- Right Dual Avatar Circles (Like React Native) -->
+      <div class="flex items-center gap-2">
+        <!-- Quick Export Button -->
         <button
           type="button"
-          class="flex-1 py-2 px-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer"
-          :class="currentView === 'calendar' ? 'bg-white text-primary shadow-sm font-bold' : 'text-on-surface-variant hover:text-on-background'"
-          @click="currentView = 'calendar'"
+          class="w-8 h-8 rounded-full bg-surface-container dark:bg-[#1c202a] border border-surface-variant/40 dark:border-[#282b37] flex items-center justify-center text-on-surface-variant hover:text-primary transition-all cursor-pointer"
+          @click="showExportModal = true"
+          title="Ekspor Data ke Excel"
         >
-          <span class="material-symbols-outlined text-[16px]">calendar_month</span>
-          <span>Kalender Finansial</span>
+          <span class="material-symbols-outlined text-[17px]">table_view</span>
         </button>
-        <button
-          type="button"
-          class="flex-1 py-2 px-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer"
-          :class="currentView === 'trends' ? 'bg-white text-primary shadow-sm font-bold' : 'text-on-surface-variant hover:text-on-background'"
-          @click="currentView = 'trends'"
+
+        <!-- <NuxtLink
+          to="/akun"
+          class="flex items-center -space-x-2 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          title="Profil & Pasangan"
         >
-          <span class="material-symbols-outlined text-[16px]">insights</span>
-          <span>Tren & Kategori</span>
-        </button>
+          <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center border-2 border-background shadow-xs">
+            {{ userInitial }}
+          </div>
+          <div
+            v-if="hasPartner"
+            class="w-8 h-8 rounded-full bg-pink-500 text-white font-bold text-xs flex items-center justify-center border-2 border-background shadow-xs"
+          >
+            {{ partnerInitial }}
+          </div>
+          <div
+            v-else
+            class="w-8 h-8 rounded-full bg-surface-container dark:bg-[#1c202a] border-2 border-dashed border-primary/50 text-primary flex items-center justify-center text-xs shadow-xs"
+          >
+            <span class="material-symbols-outlined text-[15px]">add</span>
+          </div>
+        </NuxtLink> -->
       </div>
     </div>
 
+    <!-- Top Segmented Switcher (Kalender Finansial vs Tren & Kategori) -->
+    <div class="bg-surface-container dark:bg-[#15171e] p-1 rounded-2xl flex items-center border border-surface-variant/40 dark:border-[#282b37]">
+      <button
+        type="button"
+        class="flex-1 py-2 px-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+        :class="currentView === 'calendar' ? 'bg-white dark:bg-[#1e2029] text-primary dark:text-[#a5b4fc] shadow-sm font-bold' : 'text-muted hover:text-on-background'"
+        @click="currentView = 'calendar'"
+      >
+        <span class="material-symbols-outlined text-[17px]">calendar_month</span>
+        <span>Kalender Finansial</span>
+      </button>
+      <button
+        type="button"
+        class="flex-1 py-2 px-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+        :class="currentView === 'trends' ? 'bg-white dark:bg-[#1e2029] text-primary dark:text-[#a5b4fc] shadow-sm font-bold' : 'text-muted hover:text-on-background'"
+        @click="currentView = 'trends'"
+      >
+        <span class="material-symbols-outlined text-[17px]">insights</span>
+        <span>Tren &amp; Kategori</span>
+      </button>
+    </div>
+
+    <!-- Period Filter Pills (1 Minggu, 2 Minggu, 1 Bulan, 1 Tahun) -->
+    <div class="flex items-center gap-2 overflow-x-auto hide-scrollbar py-0.5">
+      <button
+        v-for="p in periodOptions"
+        :key="p.key"
+        type="button"
+        class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+        :class="periodFilter === p.key ? 'bg-blue-600 text-white font-bold shadow-xs' : 'bg-surface-container dark:bg-[#1c202a] text-muted hover:text-on-background'"
+        @click="setPeriod(p.key)"
+      >
+        {{ p.label }}
+      </button>
+    </div>
+
     <!-- ============================================== -->
-    <!-- VIEW 1: KALENDER FINANSIAL                     -->
+    <!-- VIEW 1: KALENDER FINANSIAL (REACT NATIVE UI)   -->
     <!-- ============================================== -->
-    <div v-if="currentView === 'calendar'" class="flex flex-col w-full space-y-4 pt-1">
+    <div v-if="currentView === 'calendar'" class="space-y-3.5">
       
-      <!-- Sync Status Banner -->
-      <div class="px-4">
-        <div class="bg-gradient-to-r from-primary/10 via-secondary/5 to-istri/10 rounded-2xl p-3.5 border border-primary/15 relative overflow-hidden flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-sm">
-              <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">event_repeat</span>
-            </div>
-            <div>
-              <div class="flex items-center gap-1.5">
-                <span class="text-[13px] font-bold text-on-background">Sinkronisasi Keuangan</span>
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-700">Aktif</span>
-              </div>
-              <p class="text-[11px] text-muted leading-tight mt-0.5">Semua pemasukan & beban tercatat real-time.</p>
-            </div>
-          </div>
+      <!-- 0. Calendar Card (React Native Design with Dynamic Weeks / Month Grid) -->
+      <div class="bg-white dark:bg-[#15171e] rounded-3xl p-4 shadow-sm border border-surface-variant/40 dark:border-[#282b37] space-y-3">
+        <!-- Header: < PeriodTitle > Hari Ini -->
+        <div class="flex items-center justify-between px-1">
           <button
             type="button"
-            class="px-3 py-1.5 rounded-xl bg-white border border-primary/20 text-primary text-[11px] font-bold hover:bg-primary/5 active:scale-95 transition-all shadow-xs cursor-pointer"
-            @click="goToToday"
+            class="w-8 h-8 rounded-full bg-surface-container dark:bg-[#1e2029] border border-surface-variant/40 dark:border-[#282b37] flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all cursor-pointer"
+            @click="prevPeriod"
+            aria-label="Periode Sebelumnya"
           >
-            Hari Ini
+            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
           </button>
-        </div>
-      </div>
 
-      <!-- Calendar Main Card -->
-      <div class="px-4">
-        <div class="bg-white rounded-3xl p-4 shadow-sm border border-surface-variant/50">
-          
-          <!-- Month Header Controls -->
-          <div class="flex items-center justify-between mb-3 px-1">
-            <div class="flex items-center gap-2">
-              <h2 class="text-base font-bold text-on-background capitalize">
-                {{ monthNamesId[currentMonth - 1] }} {{ currentYear }}
-              </h2>
-              <span
-                v-if="isCurrentMonthActive"
-                class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary"
-              >
-                Bulan Ini
-              </span>
-            </div>
-            <div class="flex items-center gap-1">
-              <button
-                type="button"
-                aria-label="Bulan Sebelumnya"
-                class="w-8 h-8 rounded-full bg-surface-container-low hover:bg-surface-variant flex items-center justify-center text-on-surface active:scale-90 transition-all cursor-pointer"
-                @click="prevMonth"
-              >
-                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-              </button>
-              <button
-                type="button"
-                aria-label="Bulan Berikutnya"
-                class="w-8 h-8 rounded-full bg-surface-container-low hover:bg-surface-variant flex items-center justify-center text-on-surface active:scale-90 transition-all cursor-pointer"
-                @click="nextMonth"
-              >
-                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-              </button>
-            </div>
-          </div>
+          <span class="text-xs sm:text-sm font-bold text-on-background capitalize text-center">
+            {{ periodDateRange.periodTitle }}
+          </span>
 
-          <!-- Days Header (Min - Sab) -->
-          <div class="grid grid-cols-7 text-center mb-1 text-[11px] font-semibold text-muted tracking-wide">
-            <div class="text-rose-500 py-1">Min</div>
-            <div class="py-1">Sen</div>
-            <div class="py-1">Sel</div>
-            <div class="py-1">Rab</div>
-            <div class="py-1">Kam</div>
-            <div class="py-1">Jum</div>
-            <div class="py-1">Sab</div>
-          </div>
-
-          <!-- Calendar Days Grid -->
-          <div class="grid grid-cols-7 gap-y-1 gap-x-1">
+          <div class="flex items-center gap-2">
             <button
-              v-for="cell in calendarCells"
-              :key="cell.dateKey"
               type="button"
-              class="relative flex flex-col items-center justify-center py-1.5 px-0.5 rounded-2xl transition-all duration-150 min-h-[44px] cursor-pointer"
+              class="w-8 h-8 rounded-full bg-surface-container dark:bg-[#1e2029] border border-surface-variant/40 dark:border-[#282b37] flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all cursor-pointer"
+              @click="nextPeriod"
+              aria-label="Periode Berikutnya"
+            >
+              <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
+            <button
+              type="button"
+              class="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors cursor-pointer ml-1"
+              @click="goToToday"
+            >
+              Hari Ini
+            </button>
+          </div>
+        </div>
+
+        <!-- Days of Week: Min (red), Sen, Sel, Rab, Kam, Jum, Sab -->
+        <div class="grid grid-cols-7 text-center text-[11px] font-semibold text-muted py-1">
+          <div class="text-rose-500">Min</div>
+          <div>Sen</div>
+          <div>Sel</div>
+          <div>Rab</div>
+          <div>Kam</div>
+          <div>Jum</div>
+          <div>Sab</div>
+        </div>
+
+        <!-- Dates Grid -->
+        <div class="grid grid-cols-7 gap-1">
+          <template v-for="cell in calendarCells" :key="cell.dateKey">
+            <!-- Empty slot for leading/trailing days when in 1 Bulan mode -->
+            <div v-if="periodFilter === '1m' && !cell.isCurrentMonth" class="h-10"></div>
+
+            <button
+              v-else
+              type="button"
+              class="h-10 rounded-2xl flex flex-col items-center justify-center relative transition-all cursor-pointer"
               :class="[
                 cell.isSelected
-                  ? 'bg-primary text-white font-bold shadow-md shadow-primary/30 scale-105 z-10 ring-2 ring-primary/40'
+                  ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20 scale-105 z-10'
                   : cell.isToday
-                    ? 'bg-primary/10 text-primary font-bold hover:bg-primary/20 ring-1 ring-primary/30'
-                    : cell.isCurrentMonth
-                      ? 'text-on-surface hover:bg-surface-container font-medium'
-                      : 'text-muted/40 font-normal hover:bg-surface-container/50'
+                    ? 'border-2 border-blue-500 text-blue-500 font-bold'
+                    : 'text-on-background hover:bg-surface-container-low dark:hover:bg-[#1e2029]'
               ]"
               @click="selectDate(cell.dateKey)"
             >
-              <!-- Day Number -->
-              <span class="text-[13px] leading-none mb-1">{{ cell.dayNum }}</span>
-
-              <!-- Indicator Dots Container -->
-              <div class="flex items-center gap-0.5 h-1.5 justify-center">
-                <span
-                  v-if="cell.hasIncome"
-                  class="w-1.5 h-1.5 rounded-full"
-                  :class="cell.isSelected ? 'bg-emerald-300' : 'bg-emerald-500'"
-                ></span>
-                <span
-                  v-if="cell.hasExpense"
-                  class="w-1.5 h-1.5 rounded-full"
-                  :class="cell.isSelected ? 'bg-rose-300' : 'bg-rose-500'"
-                ></span>
-                <span
-                  v-if="cell.hasDebt"
-                  class="w-1.5 h-1.5 rounded-full"
-                  :class="cell.isSelected ? 'bg-amber-300' : 'bg-amber-500'"
-                ></span>
-                <span
-                  v-if="cell.hasBill"
-                  class="w-1.5 h-1.5 rounded-full"
-                  :class="cell.isSelected ? 'bg-indigo-300' : 'bg-indigo-600'"
-                  title="Ada Tagihan"
-                ></span>
-                <span
-                  v-if="!cell.hasIncome && !cell.hasExpense && !cell.hasDebt && !cell.hasBill"
-                  class="w-1 h-1 rounded-full opacity-0"
-                ></span>
+              <span class="text-xs leading-none">{{ cell.dayNum }}</span>
+              <!-- Indicator dots -->
+              <div class="flex items-center justify-center gap-0.5 mt-1 h-1">
+                <span v-if="cell.hasIncome" class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                <span v-if="cell.hasExpense" class="w-1 h-1 rounded-full bg-rose-500"></span>
+                <span v-if="cell.hasDebt" class="w-1 h-1 rounded-full bg-amber-500"></span>
               </div>
             </button>
-          </div>
+          </template>
+        </div>
 
-          <!-- Color Legend -->
-          <div class="flex items-center justify-center gap-3 mt-3 pt-3 border-t border-surface-variant/40 text-[11px] text-muted flex-wrap">
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>Pemasukan</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-              <span>Pengeluaran</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-              <span>Hutang</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
-              <span>Tagihan</span>
-            </div>
+        <!-- Legend (Pemasukan, Pengeluaran, Hari Ini) -->
+        <div class="pt-2 border-t border-surface-variant/30 dark:border-[#282b37]/60 flex items-center justify-center gap-4 text-[11px] text-muted font-medium">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>Pemasukan</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span>Pengeluaran</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full border-2 border-blue-500"></span>
+            <span>Hari Ini</span>
           </div>
         </div>
       </div>
 
-      <!-- Ringkasan Harian (Daily Summary) -->
-      <div class="px-4">
-        <div class="bg-white rounded-3xl p-4 shadow-sm border border-surface-variant/50 space-y-3">
-          <div class="flex items-center justify-between pb-1 border-b border-surface-variant/30">
-            <div>
-              <span class="text-[10px] font-semibold uppercase tracking-wider text-muted block">Ringkasan Harian</span>
-              <h3 class="text-[15px] font-bold text-on-background">{{ selectedDateInfo.title }}</h3>
-            </div>
-            <span
-              class="text-xs font-bold px-2.5 py-1 rounded-full"
-              :class="[
-                selectedDateInfo.net > 0
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : selectedDateInfo.net < 0
-                    ? 'bg-rose-100 text-rose-700'
-                    : 'bg-surface-variant text-muted'
-              ]"
-            >
-              {{ selectedDateInfo.net > 0 ? '+' : selectedDateInfo.net < 0 ? '-' : '' }}{{ formatRupiah(selectedDateInfo.net) }}
+      <!-- 1. Daily Selected Date Card -->
+      <div class="bg-white dark:bg-[#15171e] rounded-3xl p-4 shadow-sm border border-surface-variant/40 dark:border-[#282b37] space-y-3">
+        <!-- Date Header & Transaction Count -->
+        <div>
+          <h2 class="text-sm font-bold text-on-background">{{ selectedDateInfo.title }}</h2>
+          <p class="text-[11px] text-muted">{{ selectedDateInfo.transactions.length }} transaksi tercatat</p>
+        </div>
+
+        <!-- 2 Side-by-Side Badges (Pemasukan & Pengeluaran) -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <!-- Pemasukan -->
+          <div class="bg-[#edfbf4] dark:bg-emerald-950/25 rounded-2xl p-3 border border-emerald-200/80 dark:border-emerald-800/40">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-0.5">PEMASUKAN</span>
+            <span class="font-bold text-sm text-emerald-600 dark:text-emerald-400 font-tabular-number">
+              {{ formatRupiah(selectedDateInfo.income) }}
             </span>
           </div>
 
-          <!-- 4 Metric Cards -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <!-- 1. Pemasukan -->
-            <div class="bg-surface-container-low/70 rounded-2xl p-2.5 border border-emerald-200">
-              <div class="flex items-center gap-1 text-emerald-600 text-[11px] font-semibold mb-1">
-                <span class="material-symbols-outlined text-[15px]">arrow_upward</span>
-                <span>Pemasukan</span>
-              </div>
-              <div class="font-bold text-xs sm:text-sm text-emerald-600 truncate font-tabular-number">
-                {{ selectedDateInfo.income > 0 ? `+${formatRupiah(selectedDateInfo.income)}` : 'Rp 0' }}
-              </div>
-            </div>
-
-            <!-- 2. Pengeluaran -->
-            <div class="bg-surface-container-low/70 rounded-2xl p-2.5 border border-rose-200">
-              <div class="flex items-center gap-1 text-rose-600 text-[11px] font-semibold mb-1">
-                <span class="material-symbols-outlined text-[15px]">arrow_downward</span>
-                <span>Pengeluaran</span>
-              </div>
-              <div class="font-bold text-xs sm:text-sm text-rose-600 truncate font-tabular-number">
-                {{ selectedDateInfo.expense > 0 ? `-${formatRupiah(selectedDateInfo.expense)}` : 'Rp 0' }}
-              </div>
-            </div>
-
-            <!-- 3. Hutang -->
-            <div class="bg-surface-container-low/70 rounded-2xl p-2.5 border border-amber-200">
-              <div class="flex items-center gap-1 text-amber-600 text-[11px] font-semibold mb-1">
-                <span class="material-symbols-outlined text-[15px]">warning</span>
-                <span>Hutang</span>
-              </div>
-              <div class="font-bold text-xs sm:text-sm text-amber-600 truncate font-tabular-number">
-                {{ selectedDateInfo.debt > 0 ? `-${formatRupiah(selectedDateInfo.debt)}` : 'Rp 0' }}
-              </div>
-            </div>
-
-            <!-- 4. Arus Kas Net -->
-            <div class="bg-primary/5 rounded-2xl p-2.5 border border-primary/20">
-              <div class="flex items-center gap-1 text-primary text-[11px] font-semibold mb-1">
-                <span class="material-symbols-outlined text-[15px]">account_balance_wallet</span>
-                <span>Arus Kas Net</span>
-              </div>
-              <div
-                class="font-bold text-xs sm:text-sm truncate font-tabular-number"
-                :class="selectedDateInfo.net >= 0 ? 'text-primary' : 'text-rose-600'"
-              >
-                {{ selectedDateInfo.net > 0 ? '+' : selectedDateInfo.net < 0 ? '-' : '' }}{{ formatRupiah(selectedDateInfo.net) }}
-              </div>
-            </div>
+          <!-- Pengeluaran -->
+          <div class="bg-[#fff5f5] dark:bg-rose-950/25 rounded-2xl p-3 border border-rose-200/80 dark:border-rose-800/40">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 block mb-0.5">PENGELUARAN</span>
+            <span class="font-bold text-sm text-rose-600 dark:text-rose-400 font-tabular-number">
+              {{ formatRupiah(selectedDateInfo.expense) }}
+            </span>
           </div>
         </div>
-      </div>
 
-      <!-- Bills on Selected Date -->
-      <div v-if="selectedDateInfo.bills && selectedDateInfo.bills.length > 0" class="px-4 pb-2 space-y-2">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-bold text-on-background flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-indigo-600 text-[18px]">receipt_long</span>
-            <span>Tagihan Jatuh Tempo</span>
-          </h3>
-          <span class="text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full border border-indigo-200">
-            {{ selectedDateInfo.bills.length }} Tagihan
-          </span>
+        <!-- Transactions on Selected Date -->
+        <div v-if="selectedDateInfo.transactions.length === 0" class="text-center py-2 text-xs text-muted">
+          Tidak ada transaksi pada tanggal ini.
         </div>
 
-        <div class="space-y-2">
-          <div
-            v-for="b in selectedDateInfo.bills"
-            :key="b.id"
-            class="bg-white rounded-2xl p-3.5 shadow-xs border flex items-center justify-between transition-all"
-            :class="b.status === 'lunas' ? 'border-emerald-200 bg-emerald-50/20' : 'border-indigo-100 bg-indigo-50/10'"
-          >
-            <div class="flex items-center gap-3">
-              <div
-                class="w-10 h-10 rounded-xl flex items-center justify-center font-bold relative shrink-0"
-                :class="b.status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'"
-              >
-                <span class="material-symbols-outlined text-[20px]">{{ getBillIcon(b.name) }}</span>
-                <div
-                  class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border border-surface flex items-center justify-center text-[7px] text-white font-bold"
-                  :class="b.owner === 'Suami' ? 'bg-suami' : b.owner === 'Istri' ? 'bg-istri' : 'bg-primary'"
-                >
-                  {{ b.owner === 'Suami' ? 'S' : b.owner === 'Istri' ? 'I' : 'B' }}
-                </div>
-              </div>
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <h4 class="text-[13px] font-bold text-on-background leading-snug">{{ b.name }}</h4>
-                  <span
-                    class="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
-                    :class="b.status === 'lunas' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800 border border-amber-200'"
-                  >
-                    {{ b.status === 'lunas' ? 'Lunas' : 'Belum Bayar' }}
-                  </span>
-                </div>
-                <p class="text-[11px] text-muted">
-                  {{ b.owner }} • {{ b.isRecurring ? 'Bulanan' : 'Sekali' }}
-                </p>
-              </div>
-            </div>
-
-            <div class="text-right flex flex-col items-end gap-1.5">
-              <span class="text-xs font-bold text-on-background tabular-nums">{{ b.amountText }}</span>
-              <button
-                v-if="b.status !== 'lunas'"
-                type="button"
-                class="text-[11px] font-bold px-3 py-1 rounded-xl bg-gradient-to-r from-primary to-indigo-600 text-white flex items-center gap-1 shadow-xs active:scale-95 transition-all cursor-pointer"
-                @click="openPayBillModal(b)"
-              >
-                <span class="material-symbols-outlined text-[13px]">payments</span>
-                <span>Bayar &amp; Catat</span>
-              </button>
-              <span v-else class="text-[11px] font-semibold text-emerald-600 flex items-center gap-0.5">
-                <span class="material-symbols-outlined text-[13px]">check_circle</span> Lunas
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Transaction List Section -->
-      <div class="px-4 pb-4 space-y-2">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-bold text-on-background flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-primary text-[18px]">receipt_long</span>
-            <span>Daftar Transaksi</span>
-          </h3>
-          <span class="text-[11px] font-semibold text-muted bg-surface-container px-2 py-0.5 rounded-full">
-            {{ selectedDateInfo.transactions.length }} Transaksi
-          </span>
-        </div>
-
-        <!-- Clean Empty State -->
-        <div
-          v-if="selectedDateInfo.transactions.length === 0"
-          class="bg-white rounded-3xl p-6 text-center shadow-sm border border-surface-variant/40 flex flex-col items-center justify-center"
-        >
-          <div class="w-14 h-14 rounded-2xl bg-surface-container flex items-center justify-center text-muted mb-2">
-            <span class="material-symbols-outlined text-[30px]">event_available</span>
-          </div>
-          <h4 class="text-sm font-bold text-on-background">Tidak ada transaksi pada tanggal ini</h4>
-          <p class="text-[12px] text-muted max-w-[240px] mt-1">Belum ada catatan pemasukan, pengeluaran, atau hutang pada tanggal ini.</p>
-          <button
-            type="button"
-            class="mt-3 px-4 py-1.5 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-all flex items-center gap-1.5 cursor-pointer"
-            @click="router.push(`/input/transaksi?date=${selectedDateStr}`)"
-          >
-            <span class="material-symbols-outlined text-[16px]">add_circle</span> Catat di Tanggal Ini
-          </button>
-        </div>
-
-        <!-- List of Transactions -->
-        <div v-else class="space-y-2">
+        <div v-else class="space-y-2 pt-1 border-t border-surface-variant/30 dark:border-[#282b37]/60">
           <div
             v-for="tx in selectedDateInfo.transactions"
             :key="tx.id"
-            class="bg-white rounded-2xl p-3.5 shadow-xs border border-surface-variant/40 flex items-center justify-between hover:shadow-sm transition-all"
+            class="flex items-center justify-between p-2.5 rounded-2xl bg-surface-container-low/50 dark:bg-[#1e2029] border border-surface-variant/30 dark:border-[#282b37]"
           >
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 min-w-0">
               <div
-                class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                :class="[
-                  tx.type === 'income'
-                    ? 'bg-emerald-100 text-emerald-600'
-                    : tx.type === 'debt'
-                      ? 'bg-amber-100 text-amber-600'
-                      : 'bg-rose-100 text-rose-600'
-                ]"
+                class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                :class="tx.type === 'income' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300'"
               >
-                <span class="material-symbols-outlined text-[20px]">{{ tx.icon }}</span>
+                <span class="material-symbols-outlined text-[18px]">{{ tx.icon || (tx.type === 'income' ? 'south_east' : 'receipt_long') }}</span>
               </div>
-              <div>
+              <div class="min-w-0">
                 <div class="flex items-center gap-1.5">
-                  <h4 class="text-[13px] font-bold text-on-background leading-snug">{{ tx.title }}</h4>
+                  <h4 class="text-xs font-bold text-on-background truncate">{{ tx.title }}</h4>
                   <span
-                    class="text-[9px] font-bold px-1.5 py-0.5 rounded-md border"
-                    :class="[
-                      tx.owner === 'Suami'
-                        ? 'bg-blue-50 text-blue-600 border-blue-200'
-                        : tx.owner === 'Istri'
-                          ? 'bg-pink-50 text-pink-600 border-pink-200'
-                          : 'bg-primary/10 text-primary border-primary/20'
-                    ]"
+                    v-if="tx.owner"
+                    class="text-[9px] font-bold px-1.5 py-0.5 rounded-md"
+                    :class="tx.owner === 'Suami' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300'"
                   >
                     {{ tx.owner }}
                   </span>
                 </div>
-                <div class="flex items-center gap-2 text-[11px] text-muted mt-0.5">
-                  <span>{{ tx.time }}</span>
-                  <span>•</span>
-                  <span>{{ tx.category }}</span>
-                  <span>•</span>
-                  <span class="truncate max-w-[100px]">{{ tx.account }}</span>
-                </div>
+                <p class="text-[10px] text-muted truncate mt-0.5">
+                  {{ tx.account }} <span v-if="tx.category">• {{ tx.category }}</span>
+                </p>
               </div>
             </div>
-
-            <div class="text-right shrink-0">
-              <span
-                class="font-tabular-number text-[13px] font-bold block"
-                :class="[
-                  tx.type === 'income'
-                    ? 'text-emerald-600'
-                    : tx.type === 'debt'
-                      ? 'text-amber-600'
-                      : 'text-rose-600'
-                ]"
-              >
-                {{ tx.type === 'income' ? '+' : '-' }}{{ formatRupiah(tx.amount) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============================================== -->
-    <!-- VIEW 2: TREN & KATEGORI (ANALYTICS)            -->
-    <!-- ============================================== -->
-    <div v-else class="flex flex-col w-full space-y-4 pt-1">
-      
-      <!-- Period Filter -->
-      <div class="px-4">
-        <div class="flex bg-surface-container-low p-1 rounded-2xl gap-1 border border-surface-variant/40">
-          <button
-            v-for="f in filters"
-            :key="f.key"
-            type="button"
-            class="flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer"
-            :class="activeFilter === f.key ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:text-on-background'"
-            @click="activeFilter = f.key"
-          >
-            {{ f.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Couple AI Insights Card -->
-      <div class="px-4">
-        <div class="bg-gradient-to-br from-primary/10 via-primary/5 to-surface-container-low rounded-2xl p-4 border border-primary/20 shadow-xs relative overflow-hidden">
-          <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
-          <div class="flex items-start justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-primary text-white flex items-center justify-center shadow-xs">
-                <span class="material-symbols-outlined text-[16px]">smart_toy</span>
-              </div>
-              <span class="text-[12px] font-bold text-primary uppercase tracking-wide flex items-center gap-1">
-                Couple AI Insights <span class="material-symbols-outlined text-[13px]">auto_awesome</span>
-              </span>
-            </div>
-            <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-              Sinkron Berdua
-            </span>
-          </div>
-          <p class="text-[13px] text-on-surface font-medium leading-relaxed mb-3.5">
-            Total pengeluaran tercatat <strong class="text-on-background font-semibold">{{ analyticsData?.expenseTotalText || 'Rp 0' }}</strong> 
-            dan pemasukan <strong class="text-emerald-600 font-semibold">{{ analyticsData?.incomeTotalText || 'Rp 0' }}</strong>. 
-            {{ categories.length > 0 ? `Pengeluaran terbesar ada di kategori ${categories[0]?.name}.` : 'Keuangan keluarga tersinkron rapi.' }}
-          </p>
-          <div v-if="hasPartner" class="pt-3 border-t border-primary/10 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] text-muted font-medium">Kontribusi:</span>
-              <div class="flex items-center gap-1.5 text-[11px] font-semibold">
-                <span class="flex items-center gap-1 text-blue-600">
-                  <span class="w-2 h-2 rounded-full bg-blue-500"></span> Suami {{ analyticsData?.contribution.suamiPct }}%
-                </span>
-                <span class="text-muted">•</span>
-                <span class="flex items-center gap-1 text-pink-600">
-                  <span class="w-2 h-2 rounded-full bg-pink-500"></span> Istri {{ analyticsData?.contribution.istriPct }}%
-                </span>
-              </div>
-            </div>
-            <span class="text-[11px] font-semibold text-primary">{{ analyticsData?.expenseTotalText }} Total</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Interactive Summary Tabs (Expense vs Income) -->
-      <section class="summary-scroll hide-scrollbar px-4 flex gap-3 overflow-x-auto">
-        <!-- Card Total Pengeluaran -->
-        <div
-          class="summary-card flex-1 min-w-[150px] p-4 rounded-2xl flex flex-col justify-between cursor-pointer transition-all duration-200 border-2"
-          :class="activeType === 'expense' ? 'bg-primary text-white border-primary shadow-md' : 'bg-white text-on-surface border-surface-variant/50'"
-          @click="activeType = 'expense'"
-        >
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-[11px] font-bold uppercase tracking-wider opacity-85">Total Pengeluaran</span>
-            <span v-if="activeType === 'expense'" class="material-symbols-outlined text-[16px]">check_circle</span>
-          </div>
-          <div class="text-xl font-bold font-tabular-number tracking-tight">
-            {{ analyticsData?.expenseTotalText || 'Rp 0' }}
-          </div>
-        </div>
-
-        <!-- Card Total Pemasukan -->
-        <div
-          class="summary-card flex-1 min-w-[150px] p-4 rounded-2xl flex flex-col justify-between cursor-pointer transition-all duration-200 border-2"
-          :class="activeType === 'income' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-white text-on-surface border-surface-variant/50'"
-          @click="activeType = 'income'"
-        >
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-[11px] font-bold uppercase tracking-wider opacity-85">Total Pemasukan</span>
-            <span v-if="activeType === 'income'" class="material-symbols-outlined text-[16px]">check_circle</span>
-          </div>
-          <div class="text-xl font-bold font-tabular-number tracking-tight">
-            {{ analyticsData?.incomeTotalText || 'Rp 0' }}
-          </div>
-        </div>
-      </section>
-
-      <!-- SVG Trend Chart -->
-      <div class="px-4">
-        <div class="bg-white rounded-3xl p-4 shadow-sm border border-surface-variant/50">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[16px]">show_chart</span>
-              </div>
-              <h2 class="text-[15px] font-bold text-on-surface">
-                {{ activeType === 'expense' ? 'Tren Pengeluaran' : 'Tren Pemasukan' }}
-              </h2>
-            </div>
-            <span class="text-[11px] text-muted capitalize">
-              {{ activeFilter === 'bulanan' ? 'Bulan Ini' : activeFilter === 'mingguan' ? 'Minggu Ini' : 'Tahun Ini' }}
-            </span>
-          </div>
-
-          <div class="relative w-full pt-2">
-            <div class="w-full h-36 relative">
-              <!-- Background grid lines -->
-              <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                <div v-for="n in 4" :key="n" class="w-full h-px bg-surface-container-highest"></div>
-              </div>
-
-              <!-- SVG Curve -->
-              <svg class="w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" :stop-color="activeType === 'expense' ? '#4648d4' : '#10B981'" stop-opacity="0.35"/>
-                    <stop offset="100%" :stop-color="activeType === 'expense' ? '#4648d4' : '#10B981'" stop-opacity="0"/>
-                  </linearGradient>
-                </defs>
-                <path :d="trendAreaPath" fill="url(#chartGradient)"/>
-                <path :d="trendPath" fill="none" :stroke="activeType === 'expense' ? '#4648d4' : '#10B981'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-
-            <!-- X Axis Dates -->
-            <div class="flex justify-between text-[10px] font-medium text-muted mt-2 px-1">
-              <span v-for="p in trendPoints" :key="p.date">{{ p.date }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Distribusi Kategori -->
-      <div class="px-4">
-        <div class="bg-white rounded-3xl p-4 shadow-sm border border-surface-variant/50">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[16px]">pie_chart</span>
-              </div>
-              <h2 class="text-[15px] font-bold text-on-surface">Distribusi Kategori</h2>
-            </div>
-            <span class="text-[11px] font-medium text-muted">{{ categories.length }} Pos Aktif</span>
-          </div>
-
-          <div v-if="categories.length === 0" class="text-center py-6 text-muted text-xs">
-            Belum ada transaksi di periode ini.
-          </div>
-
-          <div v-else class="space-y-3">
-            <div
-              v-for="cat in categories"
-              :key="cat.name"
-              class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container-low/50 border border-surface-variant/30"
+            <span
+              class="text-xs font-bold font-tabular-number shrink-0 ml-2"
+              :class="tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
             >
-              <div class="flex items-center gap-3 flex-1 min-w-0 mr-3">
-                <div class="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-primary shrink-0">
-                  <span class="material-symbols-outlined text-[18px]">{{ cat.icon }}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center justify-between mb-1">
-                    <p class="text-[13px] font-bold text-on-surface truncate">{{ cat.name }}</p>
-                    <span class="text-[12px] font-bold text-on-surface font-tabular-number ml-2">{{ cat.amountText }}</span>
-                  </div>
-                  <!-- Progress bar -->
-                  <div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
-                    <div class="h-full bg-primary rounded-full transition-all duration-500" :style="{ width: `${cat.pct}%` }"></div>
-                  </div>
-                </div>
-              </div>
-              <span class="text-[11px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-md shrink-0">
-                {{ cat.pct }}%
-              </span>
-            </div>
+              {{ tx.type === 'income' ? '+' : '-' }}{{ formatRupiah(tx.amount) }}
+            </span>
           </div>
         </div>
       </div>
 
-      <!-- Partner Contribution Card (If Couple) -->
-      <div v-if="hasPartner" class="px-4">
-        <div class="bg-white rounded-3xl p-4 shadow-sm border border-surface-variant/50 space-y-3">
-          <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-              <span class="material-symbols-outlined text-[16px]">group</span>
+      <!-- 2. Porsi Belanja Keluarga Card -->
+      <div class="bg-white dark:bg-[#15171e] rounded-3xl p-4 shadow-sm border border-surface-variant/40 dark:border-[#282b37] space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[18px]">group</span>
+          <h3 class="text-xs font-bold text-on-background">
+            Porsi Belanja Keluarga ({{ periodDateRange.periodTitle }})
+          </h3>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <!-- Suami -->
+          <div class="bg-blue-50/40 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-900/40 rounded-2xl p-2.5 text-center space-y-1">
+            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+              Suami
+            </span>
+            <div class="text-xs font-extrabold text-on-background font-tabular-number truncate">
+              {{ formatRupiah(suamiExpense) }}
             </div>
-            <h2 class="text-[15px] font-bold text-on-surface">Kontribusi Berdua</h2>
+            <div class="text-[10px] text-muted">{{ suamiPct }}% dari total</div>
           </div>
 
-          <div class="space-y-2">
-            <!-- Suami Row -->
+          <!-- Istri -->
+          <div class="bg-pink-50/40 dark:bg-pink-950/20 border border-pink-200/80 dark:border-pink-900/40 rounded-2xl p-2.5 text-center space-y-1">
+            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300">
+              Istri
+            </span>
+            <div class="text-xs font-extrabold text-on-background font-tabular-number truncate">
+              {{ formatRupiah(istriExpense) }}
+            </div>
+            <div class="text-[10px] text-muted">{{ istriPct }}% dari total</div>
+          </div>
+
+          <!-- Bersama -->
+          <div class="bg-purple-50/40 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/40 rounded-2xl p-2.5 text-center space-y-1">
+            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+              Bersama
+            </span>
+            <div class="text-xs font-extrabold text-on-background font-tabular-number truncate">
+              {{ formatRupiah(bersamaExpense) }}
+            </div>
+            <div class="text-[10px] text-muted">{{ bersamaPct }}% dari total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Kategori Pengeluaran Card with Progress Bars -->
+      <div class="bg-white dark:bg-[#15171e] rounded-3xl p-4 shadow-sm border border-surface-variant/40 dark:border-[#282b37] space-y-3.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[18px]">bar_chart</span>
+            <h3 class="text-xs font-bold text-on-background">
+              Kategori Pengeluaran ({{ periodDateRange.periodTitle }})
+            </h3>
+          </div>
+          <span class="text-[10px] font-medium text-muted">{{ categories.length }} Kategori</span>
+        </div>
+
+        <div v-if="categories.length === 0" class="text-center py-6 text-muted text-xs">
+          Belum ada catatan pengeluaran di periode ini.
+        </div>
+
+        <div v-else class="space-y-3">
+          <div
+            v-for="(cat, idx) in categories"
+            :key="cat.name"
+            class="space-y-1.5"
+          >
             <div class="flex items-center justify-between text-xs">
-              <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-bold">
-                  {{ currentHousehold?.suami?.initial || 'S' }}
-                </div>
-                <span class="font-medium text-on-surface">{{ currentHousehold?.suami?.firstName || 'Suami' }} (Suami)</span>
+              <div class="flex items-center gap-2 min-w-0 mr-2">
+                <span
+                  class="w-2 h-2 rounded-full shrink-0"
+                  :style="{ backgroundColor: categoryDotColors[idx % categoryDotColors.length] }"
+                ></span>
+                <span class="font-bold text-on-background truncate">{{ cat.name }}</span>
+                <span class="text-[10px] text-muted shrink-0">({{ categoryUsageCounts[cat.name] || 1 }}x)</span>
               </div>
-              <span class="font-bold text-on-surface">
-                {{ activeType === 'expense' ? analyticsData?.contribution.suamiText : analyticsData?.incomeContribution.suamiText }}
-                <span class="text-muted font-normal">({{ activeType === 'expense' ? analyticsData?.contribution.suamiPct : analyticsData?.incomeContribution.suamiPct }}%)</span>
-              </span>
+              <div class="text-right shrink-0">
+                <span class="font-bold text-on-background font-tabular-number mr-1.5">{{ cat.amountText }}</span>
+                <span class="text-[10px] text-muted font-medium">{{ cat.pct }}%</span>
+              </div>
             </div>
 
-            <!-- Dual-tone progress -->
-            <div class="h-2.5 w-full bg-surface-container rounded-full overflow-hidden flex">
+            <!-- Progress Bar -->
+            <div class="w-full h-1.5 rounded-full bg-surface-container dark:bg-slate-800 overflow-hidden">
               <div
-                class="h-full bg-blue-500 transition-all duration-500"
-                :style="{ width: `${activeType === 'expense' ? analyticsData?.contribution.suamiPct : analyticsData?.incomeContribution.suamiPct}%` }"
+                class="h-full rounded-full transition-all duration-500"
+                :style="{
+                  width: `${Math.max(cat.pct, 2)}%`,
+                  backgroundColor: categoryDotColors[idx % categoryDotColors.length]
+                }"
               ></div>
-              <div
-                class="h-full bg-pink-500 transition-all duration-500"
-                :style="{ width: `${activeType === 'expense' ? analyticsData?.contribution.istriPct : analyticsData?.incomeContribution.istriPct}%` }"
-              ></div>
-            </div>
-
-            <!-- Istri Row -->
-            <div class="flex items-center justify-between text-xs">
-              <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-bold">
-                  {{ currentHousehold?.istri?.initial || 'I' }}
-                </div>
-                <span class="font-medium text-on-surface">{{ currentHousehold?.istri?.firstName || 'Istri' }} (Istri)</span>
-              </div>
-              <span class="font-bold text-on-surface">
-                {{ activeType === 'expense' ? analyticsData?.contribution.istriText : analyticsData?.incomeContribution.istriText }}
-                <span class="text-muted font-normal">({{ activeType === 'expense' ? analyticsData?.contribution.istriPct : analyticsData?.incomeContribution.istriPct }}%)</span>
-              </span>
             </div>
           </div>
         </div>
+
+        <!-- Bottom Link to Trends -->
+        <button
+          type="button"
+          class="w-full pt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-blue-500 hover:text-blue-600 transition cursor-pointer"
+          @click="currentView = 'trends'"
+        >
+          <span>Lihat Analisis Tren &amp; Grafik Lengkap</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
       </div>
 
     </div>
 
-    <!-- Modal Dialog: Bayar & Catat Tagihan dari Kalender -->
-    <div
-      v-if="isPayBillModalOpen && activePayBill"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 transition-opacity duration-300 animate-fade-in"
-      @click.self="isPayBillModalOpen = false"
-    >
-      <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl flex flex-col gap-4 border border-surface-variant/40 max-h-[90vh] overflow-y-auto">
-        <!-- Header -->
-        <div class="flex items-center justify-between pb-2 border-b border-surface-variant/20">
+    <!-- ============================================== -->
+    <!-- VIEW 2: TREN & KATEGORI (REACT NATIVE UI)      -->
+    <!-- ============================================== -->
+    <div v-else class="space-y-3.5">
+      
+      <!-- 1. Hero Card "ARUS KAS" -->
+      <div class="bg-gradient-to-br from-[#1b1e2a] to-[#12141c] rounded-3xl p-5 border border-slate-800 shadow-sm space-y-2.5 relative overflow-hidden text-white">
+        <!-- Top row: Period & Local Verified Badge -->
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            ARUS KAS • {{ activeMonthName.toUpperCase() }} {{ currentYear }}
+          </span>
+        </div>
+
+        <!-- Surplus / Defisit Bersih -->
+        <div>
+          <span class="text-xs text-slate-400 block mb-0.5">Surplus / Defisit Bersih</span>
+          <div
+            class="text-2xl sm:text-3xl font-extrabold tracking-tight font-tabular-number"
+            :class="netCashflow >= 0 ? 'text-emerald-400' : 'text-[#f43f5e]'"
+          >
+            {{ netCashflow >= 0 ? '+' : '-' }}{{ formatRupiah(Math.abs(netCashflow)) }}
+          </div>
+        </div>
+
+        <!-- Bottom 2 Stats: Total Pemasukan & Total Pengeluaran -->
+        <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800">
           <div class="flex items-center gap-2.5">
-            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
-              <span class="material-symbols-outlined text-[20px]">receipt_long</span>
+            <div class="w-8 h-8 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0">
+              <span class="material-symbols-outlined text-[17px]">trending_up</span>
             </div>
             <div>
-              <h3 class="text-sm font-bold text-on-background">Bayar &amp; Catat Tagihan</h3>
-              <p class="text-[11px] text-muted">Tandai lunas dan potong saldo akun otomatis</p>
+              <span class="text-[10px] text-slate-400 block leading-tight">Total Pemasukan</span>
+              <span class="text-xs font-bold text-white font-tabular-number">{{ formatRupiah(totalIncome) }}</span>
             </div>
           </div>
+
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0">
+              <span class="material-symbols-outlined text-[17px]">trending_down</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 block leading-tight">Total Pengeluaran</span>
+              <span class="text-xs font-bold text-white font-tabular-number">{{ formatRupiah(totalExpense) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Porsi Belanja Keluarga Card -->
+      <div class="bg-white dark:bg-[#15171e] rounded-3xl p-4 shadow-sm border border-surface-variant/40 dark:border-[#282b37] space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[18px]">group</span>
+          <h3 class="text-xs font-bold text-on-background">Porsi Belanja Keluarga</h3>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <!-- Suami -->
+          <div class="bg-blue-50/40 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-900/40 rounded-2xl p-2.5 text-center space-y-1">
+            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+              Suami
+            </span>
+            <div class="text-xs font-extrabold text-on-background font-tabular-number truncate">
+              {{ formatRupiah(suamiExpense) }}
+            </div>
+            <div class="text-[10px] text-muted">{{ suamiPct }}% dari total</div>
+          </div>
+
+          <!-- Istri -->
+          <div class="bg-pink-50/40 dark:bg-pink-950/20 border border-pink-200/80 dark:border-pink-900/40 rounded-2xl p-2.5 text-center space-y-1">
+            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300">
+              Istri
+            </span>
+            <div class="text-xs font-extrabold text-on-background font-tabular-number truncate">
+              {{ formatRupiah(istriExpense) }}
+            </div>
+            <div class="text-[10px] text-muted">{{ istriPct }}% dari total</div>
+          </div>
+
+          <!-- Bersama -->
+          <div class="bg-purple-50/40 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-900/40 rounded-2xl p-2.5 text-center space-y-1">
+            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+              Bersama
+            </span>
+            <div class="text-xs font-extrabold text-on-background font-tabular-number truncate">
+              {{ formatRupiah(bersamaExpense) }}
+            </div>
+            <div class="text-[10px] text-muted">{{ bersamaPct }}% dari total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Breakdown Pengeluaran per Kategori Card -->
+      <div class="bg-white dark:bg-[#15171e] rounded-3xl p-4 shadow-sm border border-surface-variant/40 dark:border-[#282b37] space-y-3.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-[18px]">insights</span>
+            <h3 class="text-xs font-bold text-on-background">Breakdown Pengeluaran per Kategori</h3>
+          </div>
+          <span class="text-[10px] font-medium text-muted">{{ categories.length }} Kategori</span>
+        </div>
+
+        <div v-if="categories.length === 0" class="text-center py-6 text-muted text-xs">
+          Belum ada catatan pengeluaran di periode ini.
+        </div>
+
+        <div v-else class="space-y-3">
+          <div
+            v-for="(cat, idx) in categories"
+            :key="cat.name"
+            class="space-y-1.5"
+          >
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2 min-w-0 mr-2">
+                <span
+                  class="w-2 h-2 rounded-full shrink-0"
+                  :style="{ backgroundColor: categoryDotColors[idx % categoryDotColors.length] }"
+                ></span>
+                <span class="font-bold text-on-background truncate">{{ cat.name }}</span>
+                <span class="text-[10px] text-muted shrink-0">({{ categoryUsageCounts[cat.name] || 1 }}x)</span>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="font-bold text-on-background font-tabular-number mr-1.5">{{ cat.amountText }}</span>
+                <span class="text-[10px] text-muted font-medium">{{ cat.pct }}%</span>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full h-1.5 rounded-full bg-surface-container dark:bg-slate-800 overflow-hidden">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                :style="{
+                  width: `${Math.max(cat.pct, 2)}%`,
+                  backgroundColor: categoryDotColors[idx % categoryDotColors.length]
+                }"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MODAL: Bayar Tagihan (jika ada tagihan dikonfirmasi) -->
+    <div
+      v-if="isPayBillModalOpen && activePayBill"
+      class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+    >
+      <div class="w-full max-w-md bg-white dark:bg-[#15171e] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl space-y-4 border border-surface-variant/40 dark:border-[#282b37] animate-slide-up">
+        <div class="flex items-center justify-between pb-2 border-b border-surface-variant/30 dark:border-[#282b37]">
+          <h3 class="text-sm font-bold text-on-background">Bayar &amp; Catat Tagihan</h3>
           <button
             type="button"
-            class="w-7 h-7 rounded-full bg-surface-container hover:bg-surface-variant flex items-center justify-center text-muted hover:text-on-surface transition-colors cursor-pointer"
+            class="w-7 h-7 rounded-full bg-surface-container flex items-center justify-center text-muted hover:text-on-surface cursor-pointer"
             @click="isPayBillModalOpen = false"
           >
             <span class="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
 
-        <!-- Detail Tagihan Box -->
-        <div class="p-3.5 bg-surface-container-lowest rounded-2xl border border-surface-variant/30 space-y-2">
+        <div class="p-3.5 bg-surface-container-low dark:bg-[#1e2029] rounded-2xl border border-surface-variant/30 dark:border-[#282b37] space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-xs text-muted font-medium">Nama Tagihan</span>
             <span class="text-xs font-bold text-on-background">{{ activePayBill.name }}</span>
@@ -1112,18 +1076,17 @@ onMounted(() => {
             <span class="text-xs text-muted font-medium">Jatuh Tempo</span>
             <span class="text-xs font-semibold text-on-background">{{ activePayBill.dueDate }}</span>
           </div>
-          <div class="flex items-center justify-between pt-2 border-t border-surface-variant/20">
+          <div class="flex items-center justify-between pt-2 border-t border-surface-variant/20 dark:border-[#282b37]">
             <span class="text-xs font-bold text-on-background">Nominal Pembayaran</span>
-            <span class="text-base font-extrabold text-primary tabular-nums">{{ activePayBill.amountText }}</span>
+            <span class="text-base font-extrabold text-primary dark:text-primary-fixed tabular-nums">{{ activePayBill.amountText }}</span>
           </div>
         </div>
 
-        <!-- Pilihan Pos Akun Sumber -->
         <div class="flex flex-col gap-1.5">
           <label class="text-xs font-bold text-on-background">Pilih Pos Akun Sumber Pembayaran</label>
           <select
             v-model="selectedPayAccountId"
-            class="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-lowest border border-surface-variant/60 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-surface-container-low dark:bg-[#1e2029] border border-surface-variant/60 dark:border-[#282b37] text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer text-on-background"
           >
             <option
               v-for="acc in selectableAccountsForBill"
@@ -1133,30 +1096,8 @@ onMounted(() => {
               {{ acc.name }} ({{ acc.ownerLabel }}) — Saldo: {{ acc.balanceText }}
             </option>
           </select>
-          <span class="text-[10px] text-muted">Saldo akun yang dipilih akan otomatis terpotong melalui pencatatan transaksi pengeluaran.</span>
         </div>
 
-        <!-- Warning jika saldo tidak cukup -->
-        <div
-          v-if="selectedPayAccount && selectedPayAccount.balance < activePayBill.amount"
-          class="flex items-start gap-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs"
-        >
-          <span class="material-symbols-outlined text-[16px] shrink-0 mt-0.5">warning</span>
-          <span>
-            Saldo akun <strong class="font-bold">{{ selectedPayAccount.name }}</strong> ({{ selectedPayAccount.balanceText }}) tidak mencukupi untuk tagihan {{ activePayBill.amountText }}. Saldo akan menjadi minus jika dilanjutkan.
-          </span>
-        </div>
-
-        <!-- Error Alert -->
-        <div
-          v-if="payBillError"
-          class="flex items-center gap-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs"
-        >
-          <span class="material-symbols-outlined text-[16px] shrink-0">error</span>
-          <span>{{ payBillError }}</span>
-        </div>
-
-        <!-- Action Buttons -->
         <div class="flex items-center justify-end gap-2 pt-2">
           <button
             type="button"
@@ -1174,12 +1115,17 @@ onMounted(() => {
           >
             <span v-if="isSubmittingPayBill" class="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
             <span v-else class="material-symbols-outlined text-[16px]">payments</span>
-            <span>{{ isSubmittingPayBill ? 'Memproses...' : 'Konfirmasi & Catat Pengeluaran' }}</span>
+            <span>{{ isSubmittingPayBill ? 'Memproses...' : 'Konfirmasi Pembayaran' }}</span>
           </button>
         </div>
       </div>
     </div>
 
+    <!-- Modal Ekspor Data Finansial -->
+    <ExportDataModal
+      v-model:open="showExportModal"
+      :default-month="`${currentYear}-${String(currentMonth).padStart(2, '0')}`"
+    />
   </div>
 </template>
 

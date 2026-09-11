@@ -8,7 +8,7 @@ import { uuidV7PrimaryKey } from './helpers';
 export const roleTypeEnum = pgEnum('role_type', ['suami', 'istri', 'single']);
 export const accountTypeEnum = pgEnum('account_type', ['bank', 'e_wallet', 'deposito', 'cash', 'debt', 'crypto']);
 export const ownershipTypeEnum = pgEnum('ownership_type', ['suami', 'istri', 'bersama', 'sendiri']);
-export const transactionTypeEnum = pgEnum('transaction_type', ['income', 'expense', 'goals', 'debt']);
+export const transactionTypeEnum = pgEnum('transaction_type', ['income', 'expense', 'goals', 'debt', 'transfer']);
 export const transactionSourceEnum = pgEnum('transaction_source', ['manual', 'ai_scan']);
 export const budgetPeriodEnum = pgEnum('budget_period', ['mingguan', 'bulanan', 'berkala']);
 export const billStatusEnum = pgEnum('bill_status', ['pending', 'lunas', 'terlambat']);
@@ -91,6 +91,7 @@ export const transactions = pgTable('transactions', {
   id: uuidV7PrimaryKey(),
   householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
   accountId: uuid('account_id').notNull().references(() => financialAccounts.id),
+  destinationAccountId: uuid('destination_account_id').references(() => financialAccounts.id, { onDelete: 'set null' }),
   categoryId: uuid('category_id').references(() => categories.id),
   recordedByUserId: uuid('recorded_by_user_id').notNull().references(() => users.id),
   ownerType: ownershipTypeEnum('owner_type').notNull().default('bersama'),

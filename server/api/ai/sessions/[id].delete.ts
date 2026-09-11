@@ -1,36 +1,22 @@
-import { db } from '../../../db/client'
-import { aiChatSessions, aiChatMessages, users } from '../../../db/schema'
-import { eq, and } from 'drizzle-orm'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin, getUserFromToken } from '../../../utils/supabaseAdmin'
 
 export default defineEventHandler(async (event) => {
   try {
     const authHeader = getHeader(event, 'Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const user = await getUserFromToken(authHeader)
+
+    if (!user) {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
-    const token = authHeader.split(' ')[1]
-    const supabaseUrl = process.env.SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const admin = getSupabaseAdmin()
+    const { data: profile } = await admin
+      .from('users')
+      .select('id, household_id')
+      .eq('auth_user_id', user.id)
+      .single()
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      throw createError({ statusCode: 500, statusMessage: 'Missing Supabase credentials' })
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-    if (authError || !user) {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid token' })
-    }
-
-    const currentUser = await db.query.users.findFirst({
-      where: eq(users.authUserId, user.id),
-      with: { household: true },
-    })
-
-    if (!currentUser || !currentUser.householdId) {
+    if (!profile || !profile.household_id) {
       throw createError({ statusCode: 404, statusMessage: 'User profile not found' })
     }
 
@@ -39,16 +25,20 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, statusMessage: 'Session ID is required' })
     }
 
-    const session = await db.query.aiChatSessions.findFirst({
-      where: and(eq(aiChatSessions.id, id as string), eq(aiChatSessions.householdId, currentUser.householdId)),
-    })
+    // Verify ownership
+    const { data: session } = await admin
+      .from('ai_chat_sessions')
+      .select('id')
+      .eq('id', id)
+      .eq('household_id', profile.household_id)
+      .single()
 
     if (!session) {
       throw createError({ statusCode: 404, statusMessage: 'Session not found' })
     }
 
-    await db.delete(aiChatMessages).where(eq(aiChatMessages.sessionId, id as string))
-    await db.delete(aiChatSessions).where(eq(aiChatSessions.id, id as string))
+    await admin.from('ai_chat_messages').delete().eq('session_id', id)
+    await admin.from('ai_chat_sessions').delete().eq('id', id)
 
     return {
       success: true,

@@ -86,6 +86,9 @@ const formOwnerUserId = ref('')
 const formShowSecret = ref(false)
 const formSubmitting = ref(false)
 const formError = ref('')
+const showExportModal = ref(false)
+const showThemeModal = ref(false)
+const { themeMode, isDark } = useTheme()
 
 onMounted(async () => {
   await loadSettings()
@@ -382,6 +385,17 @@ function handleReplayTour() {
             </div>
             <span class="material-symbols-outlined menu-arrow">chevron_right</span>
           </NuxtLink>
+          <div class="menu-divider"></div>
+          <div class="menu-item cursor-pointer" @click="showExportModal = true">
+            <div class="menu-icon" style="background:color-mix(in srgb, #2563EB 12%, transparent);color:#2563EB">
+              <span class="material-symbols-outlined">table_view</span>
+            </div>
+            <div class="menu-text">
+              <span class="menu-label">Ekspor ke Excel / CSV</span>
+              <span class="menu-sub font-metadata-xs">Unduh riwayat transaksi &amp; ringkasan pos akun keluarga</span>
+            </div>
+            <span class="material-symbols-outlined menu-arrow">chevron_right</span>
+          </div>
         </div>
       </div>
 
@@ -412,7 +426,7 @@ function handleReplayTour() {
             <span class="material-symbols-outlined menu-arrow">chevron_right</span>
           </NuxtLink>
           <div class="menu-divider"></div>
-          <NuxtLink to="#" class="menu-item">
+          <div class="menu-item cursor-pointer" @click="showThemeModal = true">
             <div class="menu-icon">
               <span class="material-symbols-outlined">palette</span>
             </div>
@@ -420,8 +434,16 @@ function handleReplayTour() {
               <span class="menu-label">Preferensi Tema</span>
               <span class="menu-sub font-metadata-xs">Terang / Gelap, Mata Uang (IDR)</span>
             </div>
+            <div class="flex items-center gap-1.5 mr-1">
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/20">
+                <span class="material-symbols-outlined text-[14px]" :class="isDark ? 'text-indigo-400' : 'text-amber-500'">
+                  {{ isDark ? 'dark_mode' : 'light_mode' }}
+                </span>
+                <span>{{ themeMode === 'system' ? 'Sistem' : isDark ? 'Gelap' : 'Terang' }}</span>
+              </span>
+            </div>
             <span class="material-symbols-outlined menu-arrow">chevron_right</span>
-          </NuxtLink>
+          </div>
           <div class="menu-divider"></div>
           <div class="menu-item cursor-pointer" @click="openPwaModal">
             <div class="menu-icon">
@@ -874,6 +896,11 @@ function handleReplayTour() {
     </div>
 
 
+    <!-- ── MODAL: EKSPOR DATA SPREADSHEET ── -->
+    <ExportDataModal v-model:open="showExportModal" />
+
+    <!-- ── MODAL: PREFERENSI TEMA (TERANG / GELAP / SISTEM) ── -->
+    <ThemePreferenceModal v-model:open="showThemeModal" />
   </div>
 </template>
 

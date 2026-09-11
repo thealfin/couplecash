@@ -220,6 +220,7 @@ export default defineEventHandler(async (event) => {
       incomeTrend,
     }
   } catch (err: any) {
+    if (err.statusCode) throw err
     console.error('[analytics.get] error:', err?.message ?? err)
     throw createError({ statusCode: 500, statusMessage: err?.message ?? 'Internal server error' })
   }

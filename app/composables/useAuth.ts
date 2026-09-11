@@ -48,7 +48,13 @@ export function useAuth() {
   const isHouseholdDetailOpen = useState<boolean>('auth:isHouseholdDetailOpen', () => false)
   const isHouseholdEditOpen = useState<boolean>('auth:isHouseholdEditOpen', () => false)
   const isHouseholdUnlinkOpen = useState<boolean>('auth:isHouseholdUnlinkOpen', () => false)
-  const currentToken = useState<string | null>('auth:currentToken', () => null)
+  const currentToken = useState<string | null>('auth:currentToken', () => {
+    if (authCookie.value) return authCookie.value
+    if (import.meta.client) {
+      return localStorage.getItem('couplecash-token') || null
+    }
+    return null
+  })
   const sessionKickedMessage = useState<string | null>('auth:sessionKickedMessage', () => null)
 
   function getDeviceId(): string {
@@ -366,7 +372,22 @@ export function useAuth() {
   async function getAuthToken(): Promise<string | null> {
     if (import.meta.client) {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        let { data: { session } } = await supabase.auth.getSession()
+
+        // Check if session is expired or expiring soon (within 30s)
+        if (session?.expires_at && session.expires_at * 1000 < Date.now() + 30000) {
+          try {
+            const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession()
+            if (!refreshErr && refreshed?.session) {
+              session = refreshed.session
+            } else {
+              session = null
+            }
+          } catch {
+            session = null
+          }
+        }
+
         if (session?.access_token) {
           currentToken.value = session.access_token
           authCookie.value = session.access_token
@@ -376,11 +397,12 @@ export function useAuth() {
       } catch (err) {
         console.warn('[getAuthToken] getSession error:', err)
       }
-      const local = localStorage.getItem('couplecash-token')
-      if (local) {
-        currentToken.value = local
-        return local
-      }
+
+      // If Supabase session is gone or expired, clear out dead tokens
+      currentToken.value = null
+      authCookie.value = null
+      localStorage.removeItem('couplecash-token')
+      return null
     }
     if (currentToken.value) return currentToken.value
     if (authCookie.value) return authCookie.value

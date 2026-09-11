@@ -5,7 +5,7 @@ useHead({
   title: 'Beranda — CoupleCash',
 })
 
-const { currentHousehold, hasPartner, currentUser, isBalanceHidden, toggleBalanceVisibility, openSyncModal, getAuthToken, currentToken } = useAuth()
+const { currentHousehold, hasPartner, currentUser, isBalanceHidden, toggleBalanceVisibility, openSyncModal, getAuthToken, currentToken, logout } = useAuth()
 
 interface DashboardData {
   totalBalance: number
@@ -62,11 +62,16 @@ interface DashboardData {
   }>
 }
 
+if (import.meta.client && !currentToken.value) {
+  await getAuthToken()
+}
+
 const dashboardFetchKey = computed(() => `dashboard-${currentUser.value?.id || 'guest'}`)
 const billsFetchKey = computed(() => `bills-${currentUser.value?.id || 'guest'}`)
 
-const { data, refresh } = await useFetch<DashboardData>('/api/dashboard', {
+const { data, refresh, error: dashboardError } = await useFetch<DashboardData>('/api/dashboard', {
   key: dashboardFetchKey.value,
+  watch: [currentToken],
   headers: computed(() => {
     const t = currentToken.value
     return t ? { Authorization: `Bearer ${t}` } : {}
@@ -74,8 +79,9 @@ const { data, refresh } = await useFetch<DashboardData>('/api/dashboard', {
 })
 
 // Bills & Subscriptions data fetch
-const { data: billsResponse, refresh: refreshBills } = await useFetch<any>('/api/bills', {
+const { data: billsResponse, refresh: refreshBills, error: billsError } = await useFetch<any>('/api/bills', {
   key: billsFetchKey.value,
+  watch: [currentToken],
   headers: computed(() => {
     const t = currentToken.value
     return t ? { Authorization: `Bearer ${t}` } : {}
@@ -84,19 +90,51 @@ const { data: billsResponse, refresh: refreshBills } = await useFetch<any>('/api
 
 // Re-fetch data when partner is linked/synced or user changes
 watch([hasPartner, () => currentUser.value?.id], async () => {
-  await Promise.all([refresh(), refreshBills()])
+  if (currentToken.value) {
+    await Promise.all([refresh(), refreshBills()]).catch(() => {})
+  }
 })
 
 const { startTour, shouldTriggerTour } = useWalkthrough()
 
 onMounted(async () => {
-  // Ensure real-time freshness when mounting component
-  await Promise.all([refresh(), refreshBills()])
+  if (import.meta.client) {
+    if (!currentToken.value) {
+      const token = await getAuthToken()
+      if (!token) {
+        await logout(false)
+        navigateTo('/auth/login')
+        return
+      }
+    }
+
+    if (dashboardError.value?.statusCode === 401 || billsError.value?.statusCode === 401) {
+      const token = await getAuthToken()
+      if (!token) {
+        await logout(false)
+        navigateTo('/auth/login')
+        return
+      }
+    }
+
+    // Ensure real-time freshness when mounting component
+    try {
+      await Promise.all([refresh(), refreshBills()])
+    } catch (e: any) {
+      if (e?.statusCode === 401) {
+        await logout(false)
+        navigateTo('/auth/login')
+        return
+      }
+    }
+  }
 
   if (typeof window !== 'undefined') {
     window.addEventListener('couple-synced', () => {
-      refresh()
-      refreshBills()
+      if (currentToken.value) {
+        refresh().catch(() => {})
+        refreshBills().catch(() => {})
+      }
     })
   }
 

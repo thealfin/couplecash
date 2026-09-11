@@ -1,45 +1,40 @@
-import { db } from '../../db/client'
-import { aiUserSettings, users } from '../../db/schema'
-import { eq } from 'drizzle-orm'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin, getUserFromToken } from '../../utils/supabaseAdmin'
 
 export default defineEventHandler(async (event) => {
   try {
     const authHeader = getHeader(event, 'Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const user = await getUserFromToken(authHeader)
+
+    if (!user) {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
-    const token = authHeader.split(' ')[1]
-    const supabaseUrl = process.env.SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const admin = getSupabaseAdmin()
+    const { data: profile } = await admin
+      .from('users')
+      .select('id, household_id')
+      .eq('auth_user_id', user.id)
+      .single()
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      throw createError({ statusCode: 500, statusMessage: 'Missing Supabase credentials' })
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-    if (authError || !user) {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid token' })
-    }
-
-    const currentUser = await db.query.users.findFirst({
-      where: eq(users.authUserId, user.id),
-    })
-
-    if (!currentUser) {
+    if (!profile) {
       throw createError({ statusCode: 404, statusMessage: 'User profile not found' })
     }
 
-    const settings = await db.query.aiUserSettings.findFirst({
-      where: eq(aiUserSettings.userId, currentUser.id),
-    })
+    const { data: settings } = await admin
+      .from('ai_user_settings')
+      .select('*')
+      .eq('user_id', profile.id)
+      .maybeSingle()
 
     return {
       success: true,
-      settings: settings || { aiEnabled: false, preferredModel: 'gemini-2.5-flash' },
+      settings: settings ? {
+        id: settings.id,
+        userId: settings.user_id,
+        aiEnabled: settings.ai_enabled,
+        preferredModel: settings.preferred_model,
+        updatedAt: settings.updated_at,
+      } : { aiEnabled: false, preferredModel: 'gemini-2.5-flash' },
     }
   } catch (err: any) {
     if (err.statusCode) throw err

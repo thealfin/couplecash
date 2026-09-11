@@ -9,6 +9,7 @@ const {
   settings,
   hasKey,
   isLoaded,
+  AVAILABLE_AI_MODELS,
   loadSettings,
   saveSettings,
   resetSettings,
@@ -82,7 +83,14 @@ async function handleRemoveKey() {
   }
 }
 
-function handleSelectModel(m: 'gemini-2.5-flash' | 'gemini-2.5-pro') {
+const selectedSeriesFilter = ref<'all' | '2.5' | '3.0' | '3.1' | '3.5' | '3.6' | '3.7' | '3.8'>('all')
+
+const filteredModels = computed(() => {
+  if (selectedSeriesFilter.value === 'all') return AVAILABLE_AI_MODELS
+  return AVAILABLE_AI_MODELS.filter((m) => m.series === selectedSeriesFilter.value)
+})
+
+function handleSelectModel(m: string) {
   settings.value.model = m
   saveSettings({ model: m })
 }
@@ -278,90 +286,152 @@ function handleResetAll() {
       </div>
     </div>
 
-    <!-- 3. Pilih Varian Model Gemini -->
-    <div class="space-y-2.5">
-      <div class="flex items-center justify-between">
-        <label class="text-xs font-bold text-slate-900 dark:text-slate-100">Pilih Varian Model Gemini</label>
-        <span class="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/60 dark:border-indigo-800/60">
-          v2.5 Multimodal
-        </span>
-      </div>
-
-      <div class="grid grid-cols-1 gap-2.5">
-        <!-- Option 1: Gemini 2.5 Flash -->
-        <div
-          class="cursor-pointer w-full rounded-2xl p-5 flex flex-col gap-2 transition-all border select-none"
-          :class="settings.model === 'gemini-2.5-flash' ? 'bg-indigo-50/60 border-indigo-500 dark:bg-indigo-950/40 dark:border-indigo-500 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'"
-          @click="handleSelectModel('gemini-2.5-flash')"
-        >
-          <div class="flex items-start justify-between">
-            <div class="flex items-center gap-3">
-              <div
-                class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-                :class="settings.model === 'gemini-2.5-flash' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'"
-              >
-                <span class="material-symbols-outlined text-[22px]">bolt</span>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-sm font-bold text-slate-900 dark:text-slate-100">Gemini 2.5 Flash</span>
-                <div class="flex items-center gap-1.5 mt-0.5">
-                  <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 text-[10px] font-bold">
-                    Direkomendasikan
-                  </span>
-                  <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-medium">
-                    ~0.8 detik
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div
-              class="w-6 h-6 rounded-full flex items-center justify-center transition-all"
-              :class="settings.model === 'gemini-2.5-flash' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-transparent'"
-            >
-              <span class="material-symbols-outlined text-[16px]">check</span>
-            </div>
-          </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            Optimal untuk struk kasir standar, minimarket, restoran, dan e-wallet QRIS. Ekstraksi instan hemat kuota token harian berdua.
-          </p>
+    <!-- 3. Pilih Varian Model Gemini (Bagan-bagan 2.5 hingga 3.8) -->
+    <div class="space-y-3">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <label class="text-xs font-bold text-slate-900 dark:text-slate-100">Katalog Model Gemini AI</label>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Pilih model yang paling sesuai dengan kebutuhan analisis Anda</p>
         </div>
 
-        <!-- Option 2: Gemini 2.5 Pro -->
+        <!-- Filter Generasi (Scrollable on small screens) -->
+        <div class="inline-flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-[11px] font-semibold max-w-full overflow-x-auto gap-0.5">
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+            :class="selectedSeriesFilter === 'all' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'"
+            @click="selectedSeriesFilter = 'all'"
+          >
+            Semua
+          </button>
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+            :class="selectedSeriesFilter === '2.5' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'"
+            @click="selectedSeriesFilter = '2.5'"
+          >
+            2.5
+          </button>
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+            :class="selectedSeriesFilter === '3.0' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'"
+            @click="selectedSeriesFilter = '3.0'"
+          >
+            3.0
+          </button>
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+            :class="selectedSeriesFilter === '3.1' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'"
+            @click="selectedSeriesFilter = '3.1'"
+          >
+            3.1
+          </button>
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+            :class="selectedSeriesFilter === '3.5' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'"
+            @click="selectedSeriesFilter = '3.5'"
+          >
+            3.5
+          </button>
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+            :class="selectedSeriesFilter === '3.6' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'"
+            @click="selectedSeriesFilter = '3.6'"
+          >
+            3.6
+          </button>
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+            :class="selectedSeriesFilter === '3.7' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'"
+            @click="selectedSeriesFilter = '3.7'"
+          >
+            3.7
+          </button>
+          <button
+            type="button"
+            class="px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+            :class="selectedSeriesFilter === '3.8' ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'"
+            @click="selectedSeriesFilter = '3.8'"
+          >
+            3.8
+          </button>
+        </div>
+      </div>
+
+      <!-- Bagan-bagan Model Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div
-          class="cursor-pointer w-full rounded-2xl p-5 flex flex-col gap-2 transition-all border select-none"
-          :class="settings.model === 'gemini-2.5-pro' ? 'bg-indigo-50/60 border-indigo-500 dark:bg-indigo-950/40 dark:border-indigo-500 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'"
-          @click="handleSelectModel('gemini-2.5-pro')"
+          v-for="m in filteredModels"
+          :key="m.id"
+          class="cursor-pointer w-full rounded-2xl p-4 flex flex-col justify-between gap-3 transition-all border select-none group relative overflow-hidden"
+          :class="settings.model === m.id
+            ? 'bg-indigo-50/70 border-indigo-500 dark:bg-indigo-950/40 dark:border-indigo-500 shadow-md ring-1 ring-indigo-500/30'
+            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-slate-700'"
+          @click="handleSelectModel(m.id)"
         >
-          <div class="flex items-start justify-between">
-            <div class="flex items-center gap-3">
+          <!-- Top Row -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2.5">
               <div
-                class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-                :class="settings.model === 'gemini-2.5-pro' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'"
+                class="w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-xs"
+                :class="settings.model === m.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-indigo-100 dark:group-hover:bg-slate-700'"
               >
-                <span class="material-symbols-outlined text-[22px]">psychology</span>
+                <span class="material-symbols-outlined text-[22px]">{{ m.icon }}</span>
               </div>
               <div class="flex flex-col">
-                <span class="text-sm font-bold text-slate-900 dark:text-slate-100">Gemini 2.5 Pro</span>
-                <div class="flex items-center gap-1.5 mt-0.5">
-                  <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300 text-[10px] font-bold">
-                    Akurasi Ekstra
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold text-slate-900 dark:text-slate-100">{{ m.name }}</span>
+                  <span class="text-[9px] font-extrabold uppercase px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {{ m.tier }}
                   </span>
-                  <span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-medium">
-                    Penalaran Kompleks
+                </div>
+                <div class="flex items-center gap-1 mt-0.5">
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" :class="m.badgeClass">
+                    {{ m.badge }}
                   </span>
                 </div>
               </div>
             </div>
+
+            <!-- Radio checkmark -->
             <div
-              class="w-6 h-6 rounded-full flex items-center justify-center transition-all"
-              :class="settings.model === 'gemini-2.5-pro' ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-transparent'"
+              class="w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 mt-0.5"
+              :class="settings.model === m.id
+                ? 'bg-indigo-600 text-white'
+                : 'border border-slate-300 dark:border-slate-700 text-transparent'"
             >
-              <span class="material-symbols-outlined text-[16px]">check</span>
+              <span class="material-symbols-outlined text-[14px]">check</span>
             </div>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            Dikhususkan untuk struk panjang apotek, kertas kusut, tinta termal pudar, atau catatan belanja tulisan tangan.
-          </p>
+
+          <!-- Middle: Power Summary -->
+          <div class="space-y-1">
+            <h4 class="text-[11px] font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-amber-500">auto_awesome</span>
+              <span>{{ m.powerTitle }}</span>
+            </h4>
+            <p class="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+              {{ m.powerDescription }}
+            </p>
+          </div>
+
+          <!-- Bottom: Specs & Latency -->
+          <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px]">
+            <span class="font-medium text-slate-500 dark:text-slate-400 flex items-center gap-1">
+              <span class="material-symbols-outlined text-xs text-slate-400">speed</span>
+              <span>{{ m.speedText }}</span>
+            </span>
+            <span class="font-semibold text-indigo-600 dark:text-indigo-400">
+              {{ m.highlight }}
+            </span>
+          </div>
         </div>
       </div>
     </div>

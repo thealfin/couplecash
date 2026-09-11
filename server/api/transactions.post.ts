@@ -14,6 +14,8 @@ export default defineEventHandler(async (event) => {
       categoryName,
       accountName,
       accountId: directAccountId = null,
+      destinationAccountId = null,
+      destinationAccountName = null,
       transactionDate,
       transactionTime,
       note,
@@ -147,35 +149,79 @@ export default defineEventHandler(async (event) => {
       accountId = newAcc?.id ?? null
     }
 
-    // 2. Get or create category
+    // 1.5 Handle destination account if transfer
+    let destAccountId: string | null = null
+    let destAccountNameFound: string = ''
+    if (type === 'transfer') {
+      if (destinationAccountId) {
+        const { data: destAcc } = await admin
+          .from('financial_accounts')
+          .select('id, name')
+          .eq('id', destinationAccountId)
+          .eq('household_id', householdId)
+          .eq('is_deleted', false)
+          .single()
+        if (destAcc) {
+          destAccountId = destAcc.id
+          destAccountNameFound = destAcc.name
+        }
+      }
+
+      if (!destAccountId && destinationAccountName) {
+        const { data: destAcc } = await admin
+          .from('financial_accounts')
+          .select('id, name')
+          .eq('household_id', householdId)
+          .ilike('name', `%${destinationAccountName}%`)
+          .eq('is_deleted', false)
+          .limit(1)
+          .single()
+        if (destAcc) {
+          destAccountId = destAcc.id
+          destAccountNameFound = destAcc.name
+        }
+      }
+
+      if (!destAccountId) {
+        throw createError({ statusCode: 400, statusMessage: 'Akun tujuan transfer tidak valid atau tidak ditemukan' })
+      }
+
+      if (accountId === destAccountId) {
+        throw createError({ statusCode: 400, statusMessage: 'Akun asal dan akun tujuan transfer tidak boleh sama' })
+      }
+    }
+
+    // 2. Get or create category (only if not transfer)
     let categoryId: string | null = null
-    const targetCatName = categoryName || (type === 'income' ? 'Gaji & Bonus' : 'Makan & Minum')
+    if (type !== 'transfer') {
+      const targetCatName = categoryName || (type === 'income' ? 'Gaji & Bonus' : 'Makan & Minum')
 
-    const { data: cat } = await admin
-      .from('categories')
-      .select('id')
-      .eq('household_id', householdId)
-      .eq('type', type)
-      .ilike('name', `%${targetCatName}%`)
-      .limit(1)
-      .single()
-
-    if (cat) {
-      categoryId = cat.id
-    } else {
-      // Create category if missing
-      const { data: newCat } = await admin
+      const { data: cat } = await admin
         .from('categories')
-        .insert({
-          household_id: householdId,
-          type: type,
-          name: targetCatName,
-          icon: type === 'income' ? 'payments' : 'restaurant',
-          applies_to: finalOwnerType,
-        })
         .select('id')
+        .eq('household_id', householdId)
+        .eq('type', type)
+        .ilike('name', `%${targetCatName}%`)
+        .limit(1)
         .single()
-      categoryId = newCat?.id ?? null
+
+      if (cat) {
+        categoryId = cat.id
+      } else {
+        // Create category if missing
+        const { data: newCat } = await admin
+          .from('categories')
+          .insert({
+            household_id: householdId,
+            type: type,
+            name: targetCatName,
+            icon: type === 'income' ? 'payments' : 'restaurant',
+            applies_to: finalOwnerType,
+          })
+          .select('id')
+          .single()
+        categoryId = newCat?.id ?? null
+      }
     }
 
     // 3. Detect if category is linked to a Goal and update goal & passive account
@@ -338,6 +384,7 @@ export default defineEventHandler(async (event) => {
       .insert({
         household_id: householdId,
         account_id: accountId,
+        destination_account_id: txType === 'transfer' ? destAccountId : null,
         category_id: categoryId,
         recorded_by_user_id: userId,
         owner_type: finalOwnerType,
@@ -347,7 +394,7 @@ export default defineEventHandler(async (event) => {
         payment_method: finalPaymentMethod,
         transaction_date: dateStr,
         transaction_time: timeStr,
-        merchant_name: name || (matchingGoal ? `Setoran Goals: ${matchingGoal.name}` : null),
+        merchant_name: name || (txType === 'transfer' ? `Transfer ke ${destAccountNameFound || 'Akun Tujuan'}` : matchingGoal ? `Setoran Goals: ${matchingGoal.name}` : null),
         note: (note ? note + debtNoteAppend : (name ? name + debtNoteAppend : null)),
         event_label: finalEventLabel,
         source: source,

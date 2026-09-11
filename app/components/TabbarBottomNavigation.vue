@@ -58,7 +58,7 @@ watch(() => route.path, () => {
             class="absolute -translate-x-[82px] -translate-y-[44px] flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-transform pointer-events-auto focus:outline-none"
             @click.stop="navigateToAction('/input/transaksi')"
           >
-            <div class="w-[52px] h-[52px] rounded-full bg-white shadow-2xl flex items-center justify-center text-primary border border-surface-container-high hover:scale-105 transition-all">
+            <div class="w-[52px] h-[52px] rounded-full bg-white dark:bg-[#1e2029] shadow-2xl flex items-center justify-center text-primary dark:text-[#a5b4fc] border border-surface-container-high dark:border-[#2e313d] hover:scale-105 transition-all">
               <span class="material-symbols-outlined text-[24px]">edit_note</span>
             </div>
             <span class="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">Catat Manual</span>
@@ -70,7 +70,7 @@ watch(() => route.path, () => {
             class="absolute -translate-y-[98px] flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-transform pointer-events-auto focus:outline-none"
             @click.stop="navigateToAction('/input/kamera')"
           >
-            <div class="relative w-[54px] h-[54px] rounded-full bg-white shadow-2xl flex items-center justify-center text-primary border border-surface-container-high hover:scale-105 transition-all">
+            <div class="relative w-[54px] h-[54px] rounded-full bg-white dark:bg-[#1e2029] shadow-2xl flex items-center justify-center text-primary dark:text-[#a5b4fc] border border-surface-container-high dark:border-[#2e313d] hover:scale-105 transition-all">
               <span class="material-symbols-outlined text-[26px]">camera</span>
               <span class="material-symbols-outlined text-[13px] absolute top-2 right-2 text-secondary animate-pulse" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
             </div>
@@ -83,7 +83,7 @@ watch(() => route.path, () => {
             class="absolute translate-x-[82px] -translate-y-[44px] flex flex-col items-center gap-1.5 cursor-pointer active:scale-95 transition-transform pointer-events-auto focus:outline-none"
             @click.stop="navigateToAction('/budget')"
           >
-            <div class="w-[52px] h-[52px] rounded-full bg-white shadow-2xl flex items-center justify-center text-primary border border-surface-container-high hover:scale-105 transition-all">
+            <div class="w-[52px] h-[52px] rounded-full bg-white dark:bg-[#1e2029] shadow-2xl flex items-center justify-center text-primary dark:text-[#a5b4fc] border border-surface-container-high dark:border-[#2e313d] hover:scale-105 transition-all">
               <span class="material-symbols-outlined text-[24px]">savings</span>
             </div>
             <span class="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-wide">Budget</span>
@@ -98,11 +98,11 @@ watch(() => route.path, () => {
       :class="{ 'opacity-50 pointer-events-none': disabled }"
     >
       <!-- Background Concave SVG Shape -->
-      <div class="absolute inset-x-0 bottom-0 top-0 overflow-hidden pointer-events-none drop-shadow-[0_-6px_20px_rgba(0,0,0,0.07)]">
+      <div class="absolute inset-x-0 bottom-0 top-0 overflow-hidden pointer-events-none drop-shadow-[0_-6px_20px_rgba(0,0,0,0.07)] dark:drop-shadow-[0_-6px_20px_rgba(0,0,0,0.5)]">
         <svg class="w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 390 86">
           <path
             d="M0 16C0 16 70 16 136 16C147 16 153 17 159 23C168 32 173 57 195 57C217 57 222 32 231 23C237 17 243 16 254 16C320 16 390 16 390 16V86H0V16Z"
-            fill="#ffffff"
+            class="fill-white dark:fill-[#15171e] transition-colors"
           />
         </svg>
       </div>
@@ -133,7 +133,7 @@ watch(() => route.path, () => {
         <div class="relative -top-4 flex justify-center items-center w-[78px]">
           <button
             type="button"
-            class="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] shadow-[0_8px_24px_rgba(79,70,229,0.45)] flex items-center justify-center text-white active:scale-95 transition-all duration-300 ring-4 ring-white focus:outline-none"
+            class="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] shadow-[0_8px_24px_rgba(79,70,229,0.45)] flex items-center justify-center text-white active:scale-95 transition-all duration-300 ring-4 ring-white dark:ring-[#15171e] focus:outline-none"
             id="fab-action-btn"
             :disabled="disabled"
             @click="toggleActionMenu"

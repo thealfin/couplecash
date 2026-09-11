@@ -4,6 +4,7 @@ useHead({ title: 'Daftar Akun — CoupleCash' })
 
 const router = useRouter()
 const { register: authRegister, loginWithGoogle } = useAuth()
+const { isDark, toggleTheme } = useTheme()
 
 const fullName = ref('')
 const selectedRole = ref<'suami' | 'istri' | 'single'>('single')
@@ -83,6 +84,21 @@ function handleGoToLogin() {
 
 <template>
   <div class="auth-container animate-fade-in">
+
+    <!-- Floating Theme Switcher Button -->
+    <div class="theme-switch-wrap">
+      <button
+        type="button"
+        class="theme-toggle-btn"
+        @click="toggleTheme"
+        :title="isDark ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'"
+        aria-label="Toggle tema terang/gelap"
+      >
+        <span class="material-symbols-outlined text-[20px]" :class="isDark ? 'text-amber-400' : 'text-slate-700'">
+          {{ isDark ? 'light_mode' : 'dark_mode' }}
+        </span>
+      </button>
+    </div>
 
     <!-- Background Blobs -->
     <div class="bg-blob bg-blob--1"></div>
@@ -467,5 +483,74 @@ function handleGoToLogin() {
   width: 100%;
   color: white;
   font-size: 14px;
+}
+
+/* Theme Switcher Button */
+.theme-switch-wrap {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+}
+.theme-toggle-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+.theme-toggle-btn:hover {
+  background: var(--surface-container);
+}
+.theme-toggle-btn:active {
+  transform: scale(0.92);
+}
+
+/* Dark Mode Overrides */
+:global(.dark) .form-box,
+.dark .form-box {
+  background: rgba(22, 24, 33, 0.88);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+:global(.dark) .input-field,
+.dark .input-field {
+  background: var(--surface-container);
+  border: 1px solid var(--outline-variant);
+}
+
+:global(.dark) .role-toggle-btn,
+.dark .role-toggle-btn {
+  background: var(--surface-container);
+  border-color: var(--outline-variant);
+}
+
+:global(.dark) .google-btn,
+.dark .google-btn {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+}
+:global(.dark) .google-btn:hover,
+.dark .google-btn:hover {
+  background: var(--surface-container-highest);
+}
+
+:global(.dark) .secondary-btn,
+.dark .secondary-btn {
+  background: var(--surface-container);
+  color: var(--on-surface);
+}
+
+:global(.dark) .icon-circle,
+.dark .icon-circle {
+  background: var(--surface-container-high);
 }
 </style>

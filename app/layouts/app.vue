@@ -40,6 +40,9 @@ const showBottomNav = computed(() => {
   ]
   return !fullScreenPrefixes.some((p) => route.path.startsWith(p))
 })
+
+const isAiChatOpen = ref(false)
+const isApiKeyPromptOpen = ref(false)
 </script>
 
 <template>
@@ -103,6 +106,22 @@ const showBottomNav = computed(() => {
 
     <!-- Embedded Concave Bottom Navigation with Action Center -->
     <TabbarBottomNavigation v-if="showBottomNav" />
+
+    <!-- AI Financial Assistant Floating Bubble (WhatsApp-Style FAB) -->
+    <AiBubbleLauncher
+      v-if="showBottomNav"
+      @open-chat="isAiChatOpen = true"
+      @open-key-prompt="isApiKeyPromptOpen = true"
+    />
+
+    <!-- AI Financial Chat Modal -->
+    <AiFinancialChatModal
+      v-model:open="isAiChatOpen"
+      @request-key="isApiKeyPromptOpen = true"
+    />
+
+    <!-- BYOK Gemini API Key Required Prompt Modal -->
+    <AiApiKeyPromptModal v-model:open="isApiKeyPromptOpen" />
   </div>
 </template>
 

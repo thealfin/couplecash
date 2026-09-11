@@ -122,6 +122,7 @@ export default defineEventHandler(async (event) => {
       }
     }
   } catch (err: any) {
+    if (err.statusCode) throw err
     console.error('[bills.get] error:', err?.message ?? err)
     throw createError({ statusCode: 500, statusMessage: err?.message ?? 'Internal server error' })
   }

@@ -81,10 +81,16 @@ Ketentuan Khusus:
 3. Hanya gunakan enum payment_method yang ditentukan jika jelas tercantum di struk. Jika tunai/cash, set payment_method ke null.
 4. "date" WAJIB berformat YYYY-MM-DD yang valid. Jangan gunakan tahun lampau sebelum ${currentYear} kecuali tertera secara eksplisit dengan 4 digit tahun di atas kertas struk.`;
 
-    // Candidate models: enforce Gemini >= 2.5 (with auto-fallback to gemini-3.6-flash / gemini-flash-latest)
-    const candidateModels = preferredModel === 'gemini-2.5-pro'
-      ? ['gemini-2.5-pro', 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash']
-      : ['gemini-2.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-pro'];
+    // Candidate models: prioritize user's preferredModel, followed by reliable fallbacks
+    const fallbackPool = [
+      'gemini-3.6-flash',
+      'gemini-3.7-flash',
+      'gemini-flash-latest',
+      'gemini-2.5-flash',
+      'gemini-2.5-pro',
+      'gemini-3.0-flash',
+    ];
+    const candidateModels = Array.from(new Set([preferredModel, ...fallbackPool].filter(Boolean)));
 
     let lastError: any = null;
     let result: any = null;

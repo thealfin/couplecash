@@ -1,64 +1,63 @@
-import { db } from '../../db/client'
-import { aiUserSettings, users } from '../../db/schema'
-import { eq } from 'drizzle-orm'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin, getUserFromToken } from '../../utils/supabaseAdmin'
 
 export default defineEventHandler(async (event) => {
   try {
     const authHeader = getHeader(event, 'Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const user = await getUserFromToken(authHeader)
+
+    if (!user) {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
-    const token = authHeader.split(' ')[1]
-    const supabaseUrl = process.env.SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const admin = getSupabaseAdmin()
+    const { data: profile } = await admin
+      .from('users')
+      .select('id, household_id')
+      .eq('auth_user_id', user.id)
+      .single()
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      throw createError({ statusCode: 500, statusMessage: 'Missing Supabase credentials' })
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-    if (authError || !user) {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid token' })
-    }
-
-    const currentUser = await db.query.users.findFirst({
-      where: eq(users.authUserId, user.id),
-    })
-
-    if (!currentUser) {
+    if (!profile) {
       throw createError({ statusCode: 404, statusMessage: 'User profile not found' })
     }
 
     const body = await readBody(event)
-    const { aiEnabled, preferredModel } = body
+    const { aiEnabled, preferredModel, customInstructions } = body || {}
 
-    const existing = await db.query.aiUserSettings.findFirst({
-      where: eq(aiUserSettings.userId, currentUser.id),
-    })
+    const { data: existing } = await admin
+      .from('ai_user_settings')
+      .select('id')
+      .eq('user_id', profile.id)
+      .maybeSingle()
 
     if (existing) {
-      await db.update(aiUserSettings)
-        .set({ aiEnabled: aiEnabled ?? existing.aiEnabled, preferredModel: preferredModel ?? existing.preferredModel })
-        .where(eq(aiUserSettings.id, existing.id))
+      const updateData: any = { updated_at: new Date().toISOString() }
+      if (aiEnabled !== undefined) updateData.ai_enabled = aiEnabled
+      if (preferredModel !== undefined) updateData.preferred_model = preferredModel
+
+      await admin.from('ai_user_settings').update(updateData).eq('id', existing.id)
     } else {
-      await db.insert(aiUserSettings).values({
-        userId: currentUser.id,
-        aiEnabled: aiEnabled ?? false,
-        preferredModel: preferredModel ?? 'gemini-2.5-flash',
+      await admin.from('ai_user_settings').insert({
+        user_id: profile.id,
+        ai_enabled: aiEnabled ?? false,
+        preferred_model: preferredModel ?? 'gemini-2.5-flash',
       })
     }
 
-    const updated = await db.query.aiUserSettings.findFirst({
-      where: eq(aiUserSettings.userId, currentUser.id),
-    })
+    const { data: updated } = await admin
+      .from('ai_user_settings')
+      .select('*')
+      .eq('user_id', profile.id)
+      .maybeSingle()
 
     return {
       success: true,
-      settings: updated,
+      settings: updated ? {
+        id: updated.id,
+        userId: updated.user_id,
+        aiEnabled: updated.ai_enabled,
+        preferredModel: updated.preferred_model,
+        updatedAt: updated.updated_at,
+      } : null,
     }
   } catch (err: any) {
     if (err.statusCode) throw err

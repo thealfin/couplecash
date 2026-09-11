@@ -38,7 +38,19 @@ useHead({ title: 'Pilih Input — CoupleCash' })
         <span class="material-symbols-outlined option-arrow">arrow_forward</span>
       </NuxtLink>
 
-      <!-- Option 3: Atur Budget Baru -->
+      <!-- Option 3: Transfer Antar Akun -->
+      <NuxtLink to="/input/transaksi?type=transfer" class="option-card" id="opt-transfer">
+        <div class="option-icon option-icon--transfer">
+          <span class="material-symbols-outlined" style="font-size:28px">sync_alt</span>
+        </div>
+        <div class="option-info">
+          <h2 class="option-title">Transfer Antar Akun</h2>
+          <p class="option-desc">Pindah saldo antar pos rekening bank, e-wallet, atau kas tunai.</p>
+        </div>
+        <span class="material-symbols-outlined option-arrow">arrow_forward</span>
+      </NuxtLink>
+
+      <!-- Option 4: Atur Budget Baru -->
       <NuxtLink to="/budget" class="option-card" id="opt-budget">
         <div class="option-icon option-icon--budget">
           <span class="material-symbols-outlined" style="font-size:28px">savings</span>
@@ -88,6 +100,7 @@ useHead({ title: 'Pilih Input — CoupleCash' })
 }
 .option-icon--ai { background:var(--primary); color:white; box-shadow:0 4px 12px rgba(70,72,212,0.3); }
 .option-icon--manual { background:var(--income); color:white; box-shadow:0 4px 12px rgba(16,185,129,0.3); }
+.option-icon--transfer { background:#0284c7; color:white; box-shadow:0 4px 12px rgba(2,132,199,0.3); }
 .option-icon--budget { background:var(--secondary); color:white; box-shadow:0 4px 12px rgba(107,56,212,0.3); }
 
 .option-info { flex:1; min-width:0; }

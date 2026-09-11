@@ -28,13 +28,16 @@ export default defineEventHandler(async (event) => {
     const lastDayOfMonth = new Date(year, month, 0).getDate()
     const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`
 
+    const filterStart = (query.startDate && String(query.startDate).trim()) ? String(query.startDate).trim() : startOfMonth
+    const filterEnd = (query.endDate && String(query.endDate).trim()) ? String(query.endDate).trim() : endOfMonth
+
     const { data: txRows = [], error } = await admin
       .from('transactions')
-      .select('id, amount, type, transaction_date, transaction_time, note, merchant_name, owner_type, account:financial_accounts(id, name, account_type), category:categories(id, name, icon)')
+      .select('id, amount, type, transaction_date, transaction_time, note, merchant_name, owner_type, account:financial_accounts!account_id(id, name, account_type), destination_account:financial_accounts!destination_account_id(id, name, account_type), category:categories(id, name, icon)')
       .eq('is_deleted', false)
       .eq('household_id', householdId)
-      .gte('transaction_date', startOfMonth)
-      .lte('transaction_date', endOfMonth)
+      .gte('transaction_date', filterStart)
+      .lte('transaction_date', filterEnd)
       .order('transaction_date', { ascending: false })
       .order('transaction_time', { ascending: false })
 
@@ -42,13 +45,13 @@ export default defineEventHandler(async (event) => {
       throw error
     }
 
-    // Query bills in the same month
+    // Query bills in the same period
     const { data: billRows = [], error: billErr } = await admin
       .from('bills')
       .select('id, name, amount, due_date, status, owner_type, is_recurring, reminder_days_before')
       .eq('household_id', householdId)
-      .gte('due_date', startOfMonth)
-      .lte('due_date', endOfMonth)
+      .gte('due_date', filterStart)
+      .lte('due_date', filterEnd)
       .order('due_date', { ascending: true })
 
     if (billErr) {
@@ -97,20 +100,23 @@ export default defineEventHandler(async (event) => {
         dailyData[dateKey].income += amt
       } else if (actualType === 'debt') {
         dailyData[dateKey].debt += amt
+      } else if (actualType === 'transfer') {
+        // Internal transfer between accounts, does not inflate expenses
       } else {
         dailyData[dateKey].expense += amt
       }
 
       dailyData[dateKey].transactions.push({
         id: tx.id,
-        title: tx.note || tx.merchant_name || 'Transaksi',
+        title: tx.note || tx.merchant_name || (actualType === 'transfer' ? `Transfer ke ${tx.destination_account?.name || 'Akun'}` : 'Transaksi'),
         time: tx.transaction_time ? tx.transaction_time.slice(0, 5) : '12:00',
         type: actualType,
         amount: amt,
         amountText: fmtRp(amt),
-        category: tx.category?.name || 'Umum',
-        icon: tx.category?.icon || (actualType === 'income' ? 'payments' : actualType === 'debt' ? 'credit_card' : 'receipt_long'),
+        category: tx.category?.name || (actualType === 'transfer' ? 'Transfer Saldo' : 'Umum'),
+        icon: tx.category?.icon || (actualType === 'income' ? 'south_east' : actualType === 'transfer' ? 'sync_alt' : actualType === 'debt' ? 'credit_card' : 'receipt_long'),
         account: tx.account?.name || 'Pos Akun',
+        destinationAccount: tx.destination_account?.name || null,
         owner: tx.owner_type === 'suami' ? 'Suami' : tx.owner_type === 'istri' ? 'Istri' : 'Bersama',
       })
     }
@@ -119,6 +125,8 @@ export default defineEventHandler(async (event) => {
       success: true,
       year,
       month,
+      startDate: filterStart,
+      endDate: filterEnd,
       dailyData,
     }
   } catch (err: any) {

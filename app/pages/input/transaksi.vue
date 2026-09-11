@@ -46,7 +46,7 @@ interface PendingBillItem {
 
 const userRole = computed<'suami' | 'istri' | 'single'>(() => currentUser.value?.role || 'suami')
 
-const type = ref<'expense' | 'income'>('expense')
+const type = ref<'expense' | 'income' | 'transfer'>('expense')
 const rawAmount = ref<number>(0)
 const name = ref('')
 
@@ -165,7 +165,12 @@ const availableAccounts = computed(() => {
 
 const category = ref('')
 const account = ref('')
+const destinationAccount = ref('')
 const owner = ref<'suami' | 'istri' | 'bersama' | 'sendiri'>('suami')
+
+const selectedDestAccountData = computed(() => {
+  return dbAccounts.value.find(a => a.name === destinationAccount.value)
+})
 
 // Tax state
 const rawTaxAmount = ref<number>(0)
@@ -258,11 +263,17 @@ async function loadFormData() {
       isSetupModalOpen.value = true
     }
 
-    // Set initial account
+    // Set initial account & destination account
     if (dbAccounts.value.length > 0) {
       account.value = dbAccounts.value[0].name
+      if (dbAccounts.value.length > 1) {
+        destinationAccount.value = dbAccounts.value[1].name
+      } else {
+        destinationAccount.value = dbAccounts.value[0].name
+      }
     } else {
       account.value = ''
+      destinationAccount.value = ''
     }
 
     // Set initial category
@@ -280,6 +291,11 @@ async function loadFormData() {
 }
 
 onMounted(() => {
+  if (route.query.type === 'transfer') {
+    type.value = 'transfer'
+  } else if (route.query.type === 'income') {
+    type.value = 'income'
+  }
   loadFormData()
 })
 
@@ -374,6 +390,26 @@ async function handleSubmit() {
     }
   }
 
+  // Transfer specific validation
+  if (type.value === 'transfer') {
+    if (!account.value || !destinationAccount.value) {
+      errorMessage.value = 'Pilih pos akun asal dan tujuan transfer'
+      return
+    }
+    if (account.value === destinationAccount.value) {
+      errorMessage.value = 'Akun asal dan akun tujuan transfer tidak boleh sama'
+      return
+    }
+    if (
+      selectedAccountData.value &&
+      selectedAccountData.value.balance < rawAmount.value &&
+      !bypassBalanceWarning.value
+    ) {
+      isBalanceModalOpen.value = true
+      return
+    }
+  }
+
   // Check insufficient balance for expense
   if (
     type.value === 'expense' &&
@@ -395,19 +431,21 @@ async function handleSubmit() {
       body: {
         type: type.value,
         amount: rawAmount.value,
-        tax_amount: rawTaxAmount.value,
-        payment_method: isPaymentMethodApplicable.value ? selectedPaymentMethod.value : null,
-        name: name.value.trim() || (type.value === 'income' ? 'Pemasukan' : 'Pengeluaran'),
-        categoryName: category.value,
+        tax_amount: type.value === 'transfer' ? 0 : rawTaxAmount.value,
+        payment_method: type.value === 'transfer' ? null : (isPaymentMethodApplicable.value ? selectedPaymentMethod.value : null),
+        name: name.value.trim() || (type.value === 'income' ? 'Pemasukan' : type.value === 'transfer' ? `Transfer ke ${destinationAccount.value}` : 'Pengeluaran'),
+        categoryName: type.value === 'transfer' ? null : category.value,
         accountName: account.value,
         accountId: selectedAccountData.value?.id,
+        destinationAccountId: type.value === 'transfer' ? selectedDestAccountData.value?.id : null,
+        destinationAccountName: type.value === 'transfer' ? destinationAccount.value : null,
         transactionDate: dateVal.value,
-        note: note.value.trim(),
+        note: note.value.trim() || (type.value === 'transfer' ? `Transfer saldo dari ${account.value} ke ${destinationAccount.value}` : ''),
         ownerType: owner.value,
         source: 'manual',
-        billId: selectedBillId.value,
-        targetDebtAccountId: (category.value === 'Hutang & Kewajiban' && selectedDebtId.value) ? selectedDebtId.value : null,
-        newAccountType: (category.value === 'Hutang & Kewajiban' && isDebtOverpayConfirmed.value) ? newDebtAccountType.value : null,
+        billId: type.value === 'transfer' ? null : selectedBillId.value,
+        targetDebtAccountId: (type.value === 'expense' && category.value === 'Hutang & Kewajiban' && selectedDebtId.value) ? selectedDebtId.value : null,
+        newAccountType: (type.value === 'expense' && category.value === 'Hutang & Kewajiban' && isDebtOverpayConfirmed.value) ? newDebtAccountType.value : null,
       },
     })
     if (res.success) {
@@ -434,7 +472,7 @@ async function handleSubmit() {
       </button>
       <div>
         <h1 class="page-title">Catat Transaksi</h1>
-        <p class="page-subtitle">Input cepat pengeluaran atau pemasukan</p>
+        <p class="page-subtitle">Input cepat {{ type === 'expense' ? 'pengeluaran' : type === 'income' ? 'pemasukan' : 'transfer antar pos akun' }}</p>
       </div>
     </div>
 
@@ -445,7 +483,7 @@ async function handleSubmit() {
         :class="{ 'pill-btn--expense': type === 'expense' }"
         @click="type = 'expense'"
       >
-        <span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+        <span class="material-symbols-outlined text-[18px]">north_east</span>
         Pengeluaran
       </button>
       <button
@@ -453,8 +491,16 @@ async function handleSubmit() {
         :class="{ 'pill-btn--income': type === 'income' }"
         @click="type = 'income'"
       >
-        <span class="material-symbols-outlined text-[18px]">arrow_downward</span>
+        <span class="material-symbols-outlined text-[18px]">south_east</span>
         Pemasukan
+      </button>
+      <button
+        class="pill-btn"
+        :class="{ 'pill-btn--transfer': type === 'transfer' }"
+        @click="type = 'transfer'"
+      >
+        <span class="material-symbols-outlined text-[18px]">sync_alt</span>
+        Transfer
       </button>
     </div>
 
@@ -554,9 +600,16 @@ async function handleSubmit() {
     </div>
 
     <!-- M-Banking Hero Nominal Card -->
-    <div class="nominal-hero-card" :class="type === 'expense' ? 'nominal-hero-card--expense' : 'nominal-hero-card--income'">
+    <div
+      class="nominal-hero-card"
+      :class="{
+        'nominal-hero-card--expense': type === 'expense',
+        'nominal-hero-card--income': type === 'income',
+        'nominal-hero-card--transfer': type === 'transfer'
+      }"
+    >
       <div class="nominal-hero-top">
-        <span class="nominal-label">Nominal {{ type === 'expense' ? 'Pengeluaran' : 'Pemasukan' }}</span>
+        <span class="nominal-label">Nominal {{ type === 'expense' ? 'Pengeluaran' : type === 'income' ? 'Pemasukan' : 'Transfer' }}</span>
         <button v-if="rawAmount > 0" class="clear-btn" @click="clearAmount" type="button">
           <span class="material-symbols-outlined" style="font-size:14px">backspace</span>
           Reset
@@ -605,21 +658,21 @@ async function handleSubmit() {
 
       <!-- Nama Transaksi -->
       <div class="form-field">
-        <label class="field-label">Nama Transaksi / Merchant</label>
+        <label class="field-label">{{ type === 'transfer' ? 'Keterangan Transfer' : 'Nama Transaksi / Merchant' }}</label>
         <div class="input-wrap">
-          <span class="material-symbols-outlined input-icon">edit_note</span>
+          <span class="material-symbols-outlined input-icon">{{ type === 'transfer' ? 'sync_alt' : 'edit_note' }}</span>
           <input
             type="text"
             v-model="name"
-            :placeholder="type === 'expense' ? 'Misal: Kopi Kenangan, Sembako' : 'Misal: Gaji Bulanan, Bonus Project'"
+            :placeholder="type === 'expense' ? 'Misal: Kopi Kenangan, Sembako' : type === 'income' ? 'Misal: Gaji Bulanan, Bonus Project' : 'Misal: Pindah ke Tabungan, Top Up Gopay'"
             class="text-input"
             id="input-manual-name"
           />
         </div>
       </div>
 
-      <!-- Kategori & Rekening Grid 2 Kolom -->
-      <div class="grid-2col">
+      <!-- Kategori & Rekening Grid 2 Kolom (atau Asal & Tujuan jika Transfer) -->
+      <div v-if="type !== 'transfer'" class="grid-2col">
         <div class="form-field">
           <label class="field-label">Kategori ({{ type === 'expense' ? 'Pengeluaran' : 'Pemasukan' }})</label>
           <div class="select-chip-btn">
@@ -653,8 +706,41 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <!-- Pajak / Tax Amount -->
-      <div class="form-field">
+      <!-- Jika Mode Transfer: 2 Kolom Akun Asal & Akun Tujuan -->
+      <div v-else class="grid-2col">
+        <div class="form-field">
+          <label class="field-label">Dari Pos Akun (Asal)</label>
+          <div class="select-chip-btn">
+            <span class="material-symbols-outlined text-[18px] text-primary">account_balance_wallet</span>
+            <select v-if="availableAccounts.length > 0" v-model="account" class="select-hidden" id="select-transfer-source-account">
+              <option v-for="acc in availableAccounts" :key="acc.id || acc.name" :value="acc.name">
+                {{ acc.name }} {{ acc.balanceText ? `(${acc.balanceText})` : '' }}
+              </option>
+            </select>
+            <span v-else class="empty-select-hint" @click="isSetupModalOpen = true">
+              + Tambah Akun
+            </span>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Ke Pos Akun (Tujuan)</label>
+          <div class="select-chip-btn">
+            <span class="material-symbols-outlined text-[18px] text-sky-500">account_balance</span>
+            <select v-if="availableAccounts.length > 0" v-model="destinationAccount" class="select-hidden" id="select-transfer-dest-account">
+              <option v-for="acc in availableAccounts" :key="acc.id || acc.name" :value="acc.name">
+                {{ acc.name }} {{ acc.balanceText ? `(${acc.balanceText})` : '' }}
+              </option>
+            </select>
+            <span v-else class="empty-select-hint" @click="isSetupModalOpen = true">
+              + Tambah Akun
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pajak / Tax Amount (Non-Transfer) -->
+      <div v-if="type !== 'transfer'" class="form-field">
         <div class="flex items-center justify-between">
           <label class="field-label !mb-0">Pajak / PPN (Opsional)</label>
           <span class="text-[10px] text-on-surface-variant">Bagian pajak dari total nominal</span>
@@ -677,8 +763,8 @@ async function handleSubmit() {
         </span>
       </div>
 
-      <!-- Metode Pembayaran (Only if non-cash/non-crypto) -->
-      <div v-if="isPaymentMethodApplicable" class="form-field">
+      <!-- Metode Pembayaran (Only if non-cash/non-crypto & Non-Transfer) -->
+      <div v-if="type !== 'transfer' && isPaymentMethodApplicable" class="form-field">
         <label class="field-label">Metode Pembayaran</label>
         <div class="pm-chips-grid">
           <button
@@ -780,12 +866,17 @@ async function handleSubmit() {
     <!-- Submit Button -->
     <button
       class="submit-btn"
+      :class="{ 'submit-btn--transfer': type === 'transfer' }"
       id="btn-submit-manual-tx"
       @click="handleSubmit"
       :disabled="isSaving || rawAmount <= 0"
     >
-      <span>{{ isSaving ? 'Menyimpan Transaksi...' : 'Simpan Transaksi' }}</span>
-      <span class="material-symbols-outlined text-[20px]">check_circle</span>
+      <span>
+        {{ isSaving ? 'Menyimpan Transaksi...' : type === 'income' ? 'Simpan Pemasukan' : type === 'transfer' ? 'Simpan Transfer' : 'Simpan Transaksi' }}
+      </span>
+      <span class="material-symbols-outlined text-[20px]">
+        {{ type === 'transfer' ? 'sync_alt' : 'check_circle' }}
+      </span>
     </button>
 
     <!-- Setup Reminder Modal for New Users -->
@@ -994,6 +1085,12 @@ async function handleSubmit() {
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
 }
 
+.pill-btn--transfer {
+  background: var(--surface-container-lowest);
+  color: #0284c7;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.18);
+}
+
 /* Pending Bills Quick Selector */
 .pending-bills-section {
   display: flex;
@@ -1104,6 +1201,11 @@ async function handleSubmit() {
 .nominal-hero-card--income {
   background: linear-gradient(135deg, color-mix(in srgb, var(--income) 8%, var(--surface-container-lowest)) 0%, var(--surface-container-lowest) 100%);
   border: 1.5px solid color-mix(in srgb, var(--income) 25%, transparent);
+}
+
+.nominal-hero-card--transfer {
+  background: linear-gradient(135deg, color-mix(in srgb, #0284c7 10%, var(--surface-container-lowest)) 0%, var(--surface-container-lowest) 100%);
+  border: 1.5px solid color-mix(in srgb, #0284c7 30%, transparent);
 }
 
 .nominal-hero-top {
@@ -1416,6 +1518,11 @@ async function handleSubmit() {
   box-shadow: 0 4px 16px rgba(70, 72, 212, 0.35);
   transition: transform 0.15s;
   margin-top: 4px;
+}
+
+.submit-btn--transfer {
+  background: linear-gradient(90deg, #0284c7, #0369a1);
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
 }
 .submit-btn:disabled {
   opacity: 0.5;

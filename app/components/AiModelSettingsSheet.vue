@@ -14,12 +14,20 @@ const router = useRouter()
 const {
   settings,
   hasKey,
+  AVAILABLE_AI_MODELS,
   loadSettings,
   saveSettings,
   resetSettings,
   validateAndSaveKey,
   getGeminiKey,
 } = useAiSettings()
+
+const selectedSeriesFilter = ref<'all' | '2.5' | '3.0' | '3.1' | '3.5' | '3.6' | '3.7' | '3.8'>('all')
+
+const filteredModels = computed(() => {
+  if (selectedSeriesFilter.value === 'all') return AVAILABLE_AI_MODELS
+  return AVAILABLE_AI_MODELS.filter((m) => m.series === selectedSeriesFilter.value)
+})
 
 const isInlineKeyOpen = ref(false)
 const inlineKeyInput = ref('')
@@ -217,84 +225,135 @@ function navigateToKeySettings() {
             </div>
           </div>
 
-          <!-- Section 2: Model Selection -->
+          <!-- Section 2: Model Selection (Bagan 2.5 hingga 3.8) -->
           <div class="flex flex-col gap-2">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-bold text-on-surface">Pilih Varian Model Gemini</label>
-              <span class="text-[10px] font-semibold text-primary px-2 py-0.5 rounded-full bg-primary/10">v2.5 Multimodal</span>
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <!-- Option 1: Gemini 2.5 Flash -->
-              <div
-                class="cursor-pointer w-full rounded-2xl p-3 flex flex-col gap-1.5 transition-all border"
-                :class="settings.model === 'gemini-2.5-flash' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-surface-container-low border-outline-variant/30'"
-                @click="settings.model = 'gemini-2.5-flash'"
-              >
-                <div class="flex items-start justify-between">
-                  <div class="flex items-center gap-2.5">
-                    <div
-                      class="w-9 h-9 rounded-xl flex items-center justify-center"
-                      :class="settings.model === 'gemini-2.5-flash' ? 'bg-primary text-white shadow-sm' : 'bg-surface-container text-on-surface-variant'"
-                    >
-                      <span class="material-symbols-outlined text-[20px]">bolt</span>
-                    </div>
-                    <div class="flex flex-col">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-bold text-on-surface">Gemini 2.5 Flash</span>
-                      </div>
-                      <div class="flex items-center gap-1 mt-0.5">
-                        <span class="px-1.5 py-0.5 rounded bg-income/15 text-income text-[10px] font-bold">Direkomendasikan</span>
-                        <span class="px-1.5 py-0.5 rounded bg-surface-container text-muted text-[10px]">~0.8 detik</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    class="w-6 h-6 rounded-full flex items-center justify-center"
-                    :class="settings.model === 'gemini-2.5-flash' ? 'bg-primary text-white' : 'bg-surface-container-highest text-transparent'"
-                  >
-                    <span class="material-symbols-outlined text-[16px]">check</span>
-                  </div>
-                </div>
-                <p class="text-[11px] text-muted leading-relaxed">
-                  Optimal untuk struk kasir standar, minimarket, restoran, dan e-wallet QRIS. Ekstraksi instan hemat kuota token harian berdua.
-                </p>
+              <div>
+                <label class="text-xs font-bold text-on-surface">Pilih Varian Model Gemini</label>
+                <p class="text-[10px] text-muted">Mulai dari seri 2.5 hingga 3.8 Flash &amp; Pro</p>
               </div>
 
-              <!-- Option 2: Gemini 2.5 Pro -->
+              <!-- Filter Generasi Tab (Scrollable) -->
+              <div class="inline-flex p-0.5 bg-surface-container rounded-lg text-[10px] font-semibold max-w-full overflow-x-auto gap-0.5">
+                <button
+                  type="button"
+                  class="px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
+                  :class="selectedSeriesFilter === 'all' ? 'bg-surface-container-lowest text-primary shadow-xs font-bold' : 'text-muted hover:text-on-surface'"
+                  @click="selectedSeriesFilter = 'all'"
+                >
+                  Semua
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
+                  :class="selectedSeriesFilter === '2.5' ? 'bg-surface-container-lowest text-primary shadow-xs font-bold' : 'text-muted hover:text-on-surface'"
+                  @click="selectedSeriesFilter = '2.5'"
+                >
+                  2.5
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
+                  :class="selectedSeriesFilter === '3.0' ? 'bg-surface-container-lowest text-primary shadow-xs font-bold' : 'text-muted hover:text-on-surface'"
+                  @click="selectedSeriesFilter = '3.0'"
+                >
+                  3.0
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
+                  :class="selectedSeriesFilter === '3.1' ? 'bg-surface-container-lowest text-primary shadow-xs font-bold' : 'text-muted hover:text-on-surface'"
+                  @click="selectedSeriesFilter = '3.1'"
+                >
+                  3.1
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
+                  :class="selectedSeriesFilter === '3.5' ? 'bg-surface-container-lowest text-primary shadow-xs font-bold' : 'text-muted hover:text-on-surface'"
+                  @click="selectedSeriesFilter = '3.5'"
+                >
+                  3.5
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
+                  :class="selectedSeriesFilter === '3.6' ? 'bg-surface-container-lowest text-primary shadow-xs font-bold' : 'text-muted hover:text-on-surface'"
+                  @click="selectedSeriesFilter = '3.6'"
+                >
+                  3.6
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
+                  :class="selectedSeriesFilter === '3.7' ? 'bg-surface-container-lowest text-primary shadow-xs font-bold' : 'text-muted hover:text-on-surface'"
+                  @click="selectedSeriesFilter = '3.7'"
+                >
+                  3.7
+                </button>
+                <button
+                  type="button"
+                  class="px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
+                  :class="selectedSeriesFilter === '3.8' ? 'bg-surface-container-lowest text-primary shadow-xs font-bold' : 'text-muted hover:text-on-surface'"
+                  @click="selectedSeriesFilter = '3.8'"
+                >
+                  3.8
+                </button>
+              </div>
+            </div>
+
+            <!-- Bagan Model List -->
+            <div class="flex flex-col gap-2 max-h-72 overflow-y-auto pr-0.5">
               <div
+                v-for="m in filteredModels"
+                :key="m.id"
                 class="cursor-pointer w-full rounded-2xl p-3 flex flex-col gap-1.5 transition-all border"
-                :class="settings.model === 'gemini-2.5-pro' ? 'bg-primary/5 border-primary shadow-sm' : 'bg-surface-container-low border-outline-variant/30'"
-                @click="settings.model = 'gemini-2.5-pro'"
+                :class="settings.model === m.id ? 'bg-primary/5 border-primary shadow-sm ring-1 ring-primary/20' : 'bg-surface-container-low border-outline-variant/30 hover:border-outline-variant'"
+                @click="settings.model = m.id"
               >
-                <div class="flex items-start justify-between">
+                <div class="flex items-start justify-between gap-2">
                   <div class="flex items-center gap-2.5">
                     <div
-                      class="w-9 h-9 rounded-xl flex items-center justify-center"
-                      :class="settings.model === 'gemini-2.5-pro' ? 'bg-primary text-white shadow-sm' : 'bg-surface-container text-on-surface-variant'"
+                      class="w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0"
+                      :class="settings.model === m.id ? 'bg-primary text-white shadow-sm' : 'bg-surface-container text-on-surface-variant'"
                     >
-                      <span class="material-symbols-outlined text-[20px]">psychology</span>
+                      <span class="material-symbols-outlined text-[20px]">{{ m.icon }}</span>
                     </div>
                     <div class="flex flex-col">
                       <div class="flex items-center gap-1.5">
-                        <span class="text-xs font-bold text-on-surface">Gemini 2.5 Pro</span>
+                        <span class="text-xs font-bold text-on-surface">{{ m.name }}</span>
+                        <span class="text-[9px] font-extrabold uppercase px-1 py-0.5 rounded bg-surface-container text-muted">
+                          {{ m.tier }}
+                        </span>
                       </div>
                       <div class="flex items-center gap-1 mt-0.5">
-                        <span class="px-1.5 py-0.5 rounded bg-secondary/15 text-secondary text-[10px] font-bold">Akurasi Ekstra</span>
-                        <span class="px-1.5 py-0.5 rounded bg-surface-container text-muted text-[10px]">Penalaran Kompleks</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" :class="m.badgeClass">
+                          {{ m.badge }}
+                        </span>
+                        <span class="px-1.5 py-0.5 rounded bg-surface-container text-muted text-[10px]">
+                          {{ m.speedText }}
+                        </span>
                       </div>
                     </div>
                   </div>
                   <div
-                    class="w-6 h-6 rounded-full flex items-center justify-center"
-                    :class="settings.model === 'gemini-2.5-pro' ? 'bg-primary text-white' : 'bg-surface-container-highest text-transparent'"
+                    class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-all"
+                    :class="settings.model === m.id ? 'bg-primary text-white' : 'border border-outline-variant text-transparent'"
                   >
-                    <span class="material-symbols-outlined text-[16px]">check</span>
+                    <span class="material-symbols-outlined text-[14px]">check</span>
                   </div>
                 </div>
-                <p class="text-[11px] text-muted leading-relaxed">
-                  Dikhususkan untuk struk panjang apotek, kertas kusut, tinta termal pudar, atau catatan belanja tulisan tangan.
-                </p>
+
+                <!-- Power Summary -->
+                <div class="space-y-0.5 pt-0.5">
+                  <h4 class="text-[11px] font-bold text-primary flex items-center gap-1">
+                    <span class="material-symbols-outlined text-xs text-warning">auto_awesome</span>
+                    <span>{{ m.powerTitle }}</span>
+                  </h4>
+                  <p class="text-[11px] text-muted leading-relaxed">
+                    {{ m.powerDescription }}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

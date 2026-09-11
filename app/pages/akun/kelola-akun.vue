@@ -412,7 +412,7 @@ function getAccountTypeLabel(type: string) {
         <span>Memuat daftar pos akun...</span>
       </div>
 
-      <div v-else-if="accounts.length === 0" class="bg-white rounded-3xl p-8 text-center shadow-xs border border-surface-variant/40 flex flex-col items-center">
+      <div v-else-if="accounts.length === 0" class="bg-white dark:bg-[#15171e] rounded-3xl p-8 text-center shadow-xs border border-surface-variant/40 dark:border-[#282b37] flex flex-col items-center">
         <div class="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center text-muted mb-2">
           <span class="material-symbols-outlined text-[24px]">account_balance</span>
         </div>
@@ -424,8 +424,8 @@ function getAccountTypeLabel(type: string) {
       <div
         v-for="acc in accounts"
         :key="acc.id"
-        class="relative bg-white rounded-2xl p-4 shadow-xs border border-surface-variant/40 transition-all duration-200 overflow-hidden"
-        :class="{ 'opacity-60 bg-slate-50 border-dashed': !acc.isActive }"
+        class="relative bg-white dark:bg-[#15171e] rounded-2xl p-4 shadow-xs border border-surface-variant/40 dark:border-[#282b37] transition-all duration-200 overflow-hidden"
+        :class="{ 'opacity-60 bg-slate-50 dark:bg-slate-900 border-dashed': !acc.isActive }"
       >
         <!-- Top Colored Strip by Owner -->
         <div
@@ -441,14 +441,14 @@ function getAccountTypeLabel(type: string) {
               class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs"
               :class="[
                 acc.accountType === 'debt'
-                  ? 'bg-amber-100 text-amber-600'
+                  ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
                   : acc.ownerType === 'suami'
-                    ? 'bg-blue-100 text-blue-600'
+                    ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
                     : acc.ownerType === 'istri'
-                      ? 'bg-pink-100 text-pink-600'
+                      ? 'bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-400'
                       : acc.ownerType === 'sendiri'
-                        ? 'bg-indigo-100 text-indigo-600'
-                        : 'bg-primary/10 text-primary'
+                        ? 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400'
+                        : 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-[#a5b4fc]'
               ]"
             >
               <span class="material-symbols-outlined text-[22px]">{{ getIconForAccount(acc) }}</span>
@@ -458,7 +458,7 @@ function getAccountTypeLabel(type: string) {
                 <h3 class="text-sm font-bold text-on-background leading-snug">{{ acc.name }}</h3>
                 <span
                   v-if="!acc.isActive"
-                  class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600"
+                  class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                 >
                   Nonaktif
                 </span>
@@ -481,7 +481,7 @@ function getAccountTypeLabel(type: string) {
             <button
               type="button"
               class="w-10 h-5 rounded-full transition-colors relative cursor-pointer focus:outline-none"
-              :class="acc.isActive ? 'bg-primary' : 'bg-slate-300'"
+              :class="acc.isActive ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'"
               @click.stop="toggleAccountActive(acc)"
               :title="acc.isActive ? 'Nonaktifkan pos akun' : 'Aktifkan pos akun'"
             >
@@ -495,7 +495,7 @@ function getAccountTypeLabel(type: string) {
             <div class="relative">
               <button
                 type="button"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-on-background hover:bg-surface-container transition-all cursor-pointer"
+                class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-on-background hover:bg-surface-container dark:hover:bg-[#1e2029] transition-all cursor-pointer"
                 @click.stop="toggleMenu(acc.id)"
                 aria-label="Opsi Pos Akun"
               >
@@ -505,12 +505,12 @@ function getAccountTypeLabel(type: string) {
               <!-- Dropdown Menu -->
               <div
                 v-if="activeMenuId === acc.id"
-                class="absolute right-0 top-9 w-36 bg-white rounded-2xl shadow-xl border border-surface-variant/60 py-1.5 z-40 animate-slide-up"
+                class="absolute right-0 top-9 w-36 bg-white dark:bg-[#1e2029] rounded-2xl shadow-xl border border-surface-variant/60 dark:border-[#2e313d] py-1.5 z-40 animate-slide-up"
                 @click.stop
               >
                 <button
                   type="button"
-                  class="w-full px-3 py-2 text-left text-xs font-semibold text-on-surface hover:bg-surface-container-low flex items-center gap-2 cursor-pointer"
+                  class="w-full px-3 py-2 text-left text-xs font-semibold text-on-surface hover:bg-surface-container-low dark:hover:bg-[#282b37] flex items-center gap-2 cursor-pointer"
                   @click="openDetailModal(acc)"
                 >
                   <span class="material-symbols-outlined text-[16px] text-primary">visibility</span>
@@ -518,16 +518,16 @@ function getAccountTypeLabel(type: string) {
                 </button>
                 <button
                   type="button"
-                  class="w-full px-3 py-2 text-left text-xs font-semibold text-on-surface hover:bg-surface-container-low flex items-center gap-2 cursor-pointer"
+                  class="w-full px-3 py-2 text-left text-xs font-semibold text-on-surface hover:bg-surface-container-low dark:hover:bg-[#282b37] flex items-center gap-2 cursor-pointer"
                   @click="openEditModal(acc)"
                 >
                   <span class="material-symbols-outlined text-[16px] text-amber-500">edit</span>
                   <span>Edit</span>
                 </button>
-                <div class="h-px bg-surface-variant/40 my-1"></div>
+                <div class="h-px bg-surface-variant/40 dark:bg-[#2e313d] my-1"></div>
                 <button
                   type="button"
-                  class="w-full px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                  class="w-full px-3 py-2 text-left text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer"
                   @click="handleDeleteAccount(acc)"
                 >
                   <span class="material-symbols-outlined text-[16px] text-rose-500">delete</span>
@@ -603,10 +603,10 @@ function getAccountTypeLabel(type: string) {
     >
       <div class="fixed inset-0 bg-black/40 backdrop-blur-[2px]" @click="closeModal"></div>
 
-      <div class="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 max-h-[90vh] flex flex-col animate-slide-up">
-        <div class="w-10 h-1 rounded-full bg-surface-variant mx-auto mb-3 sm:hidden"></div>
+      <div class="relative w-full max-w-md bg-white dark:bg-[#15171e] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 max-h-[90vh] flex flex-col animate-slide-up border dark:border-[#282b37]">
+        <div class="w-10 h-1 rounded-full bg-surface-variant dark:bg-[#282b37] mx-auto mb-3 sm:hidden"></div>
 
-        <div class="flex items-center justify-between pb-3 border-b border-surface-variant/40">
+        <div class="flex items-center justify-between pb-3 border-b border-surface-variant/40 dark:border-[#282b37]">
           <div>
             <h2 class="text-base font-bold text-on-background">
               {{ isEditing ? 'Edit Pos Akun' : 'Tambah Pos Akun Baru' }}
@@ -617,7 +617,7 @@ function getAccountTypeLabel(type: string) {
           </div>
           <button
             type="button"
-            class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-muted hover:text-on-background cursor-pointer"
+            class="w-8 h-8 rounded-full bg-surface-container dark:bg-[#1e2029] flex items-center justify-center text-muted hover:text-on-background cursor-pointer"
             @click="closeModal"
           >
             <span class="material-symbols-outlined text-[18px]">close</span>
@@ -625,7 +625,7 @@ function getAccountTypeLabel(type: string) {
         </div>
 
         <div class="overflow-y-auto py-4 space-y-3.5">
-          <div v-if="formError" class="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
+          <div v-if="formError" class="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
             <span class="material-symbols-outlined text-[18px]">error</span>
             <span>{{ formError }}</span>
           </div>
@@ -636,7 +636,7 @@ function getAccountTypeLabel(type: string) {
             <div class="relative">
               <select
                 v-model="bankCategory"
-                class="w-full bg-surface-container-low border border-surface-variant/60 rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs appearance-none"
+                class="w-full bg-surface-container-low dark:bg-[#1e2029] border border-surface-variant/60 dark:border-[#2e313d] rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs appearance-none cursor-pointer"
               >
                 <option value="" disabled>Pilih Institusi / Tipe...</option>
                 <optgroup label="Bank Nasional">
@@ -672,7 +672,7 @@ function getAccountTypeLabel(type: string) {
             <input
               v-model="customTitleInput"
               type="text"
-              class="w-full bg-surface-container-low border border-surface-variant/60 rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs"
+              class="w-full bg-surface-container-low dark:bg-[#1e2029] border border-surface-variant/60 dark:border-[#2e313d] rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs"
               placeholder="Misal: BCA Utama atau Cicilan Mobil"
             />
           </div>
@@ -682,7 +682,7 @@ function getAccountTypeLabel(type: string) {
             <label class="block text-xs font-bold text-on-background mb-1">Jenis Akun</label>
             <select
               v-model="customInstitutionType"
-              class="w-full bg-surface-container-low border border-surface-variant/60 rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs appearance-none"
+              class="w-full bg-surface-container-low dark:bg-[#1e2029] border border-surface-variant/60 dark:border-[#2e313d] rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs appearance-none cursor-pointer"
             >
               <option value="bank">Rekening Bank</option>
               <option value="e_wallet">E-Wallet</option>
@@ -703,7 +703,7 @@ function getAccountTypeLabel(type: string) {
                 :value="displayFormattedBalance"
                 @input="handleBalanceInput"
                 type="text"
-                class="w-full bg-surface-container-low border border-surface-variant/60 rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold text-on-background focus:outline-none focus:border-primary shadow-xs"
+                class="w-full bg-surface-container-low dark:bg-[#1e2029] border border-surface-variant/60 dark:border-[#2e313d] rounded-2xl pl-10 pr-4 py-2.5 text-xs font-bold text-on-background focus:outline-none focus:border-primary shadow-xs"
                 placeholder="0"
               />
             </div>
@@ -712,7 +712,7 @@ function getAccountTypeLabel(type: string) {
           <!-- Ownership Selector -->
           <div>
             <label class="block text-xs font-bold text-on-background mb-1">Kepemilikan Akun</label>
-            <div v-if="userRole === 'single'" class="flex bg-surface-container-low p-1 rounded-2xl border border-surface-variant/50">
+            <div v-if="userRole === 'single'" class="flex bg-surface-container-low dark:bg-[#1e2029] p-1 rounded-2xl border border-surface-variant/50 dark:border-[#2e313d]">
               <button
                 type="button"
                 class="flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer bg-primary text-white shadow-sm"
@@ -721,7 +721,7 @@ function getAccountTypeLabel(type: string) {
                 Sendiri (Pribadi)
               </button>
             </div>
-            <div v-else class="flex bg-surface-container-low p-1 rounded-2xl border border-surface-variant/50">
+            <div v-else class="flex bg-surface-container-low dark:bg-[#1e2029] p-1 rounded-2xl border border-surface-variant/50 dark:border-[#2e313d]">
               <button
                 type="button"
                 class="flex-1 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer"
@@ -757,16 +757,16 @@ function getAccountTypeLabel(type: string) {
             <input
               v-model="accountNumberInput"
               type="text"
-              class="w-full bg-surface-container-low border border-surface-variant/60 rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs font-mono"
+              class="w-full bg-surface-container-low dark:bg-[#1e2029] border border-surface-variant/60 dark:border-[#2e313d] rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs font-mono"
               placeholder="Contoh: 5321098765"
             />
           </div>
         </div>
 
-        <div class="pt-3 border-t border-surface-variant/40 flex gap-2">
+        <div class="pt-3 border-t border-surface-variant/40 dark:border-[#282b37] flex gap-2">
           <button
             type="button"
-            class="flex-1 py-2.5 rounded-xl border border-surface-variant/60 text-xs font-bold text-muted hover:bg-surface-container transition-all cursor-pointer"
+            class="flex-1 py-2.5 rounded-xl border border-surface-variant/60 dark:border-[#2e313d] text-xs font-bold text-muted hover:bg-surface-container dark:hover:bg-[#1e2029] transition-all cursor-pointer"
             @click="closeModal"
           >
             Batal
@@ -793,22 +793,22 @@ function getAccountTypeLabel(type: string) {
     >
       <div class="fixed inset-0 bg-black/40 backdrop-blur-[2px]" @click="closeDetailModal"></div>
 
-      <div class="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 animate-slide-up space-y-4">
-        <div class="w-10 h-1 rounded-full bg-surface-variant mx-auto mb-2 sm:hidden"></div>
+      <div class="relative w-full max-w-md bg-white dark:bg-[#15171e] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 animate-slide-up space-y-4 border dark:border-[#282b37]">
+        <div class="w-10 h-1 rounded-full bg-surface-variant dark:bg-[#282b37] mx-auto mb-2 sm:hidden"></div>
 
         <!-- Header -->
-        <div class="flex items-center justify-between pb-3 border-b border-surface-variant/40">
+        <div class="flex items-center justify-between pb-3 border-b border-surface-variant/40 dark:border-[#282b37]">
           <div class="flex items-center gap-3">
             <div
               class="w-12 h-12 rounded-2xl flex items-center justify-center"
               :class="[
                 selectedAccount.accountType === 'debt'
-                  ? 'bg-amber-100 text-amber-600'
+                  ? 'bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
                   : selectedAccount.ownerType === 'suami'
-                    ? 'bg-blue-100 text-blue-600'
+                    ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
                     : selectedAccount.ownerType === 'istri'
-                      ? 'bg-pink-100 text-pink-600'
-                      : 'bg-primary/10 text-primary'
+                      ? 'bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-400'
+                      : 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-[#a5b4fc]'
               ]"
             >
               <span class="material-symbols-outlined text-[26px]">{{ getIconForAccount(selectedAccount) }}</span>
@@ -817,7 +817,7 @@ function getAccountTypeLabel(type: string) {
               <h2 class="text-base font-bold text-on-background">{{ selectedAccount.name }}</h2>
               <span
                 class="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                :class="selectedAccount.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-container text-muted'"
+                :class="selectedAccount.isActive ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300' : 'bg-surface-container dark:bg-[#1e2029] text-muted'"
               >
                 {{ selectedAccount.isActive ? 'Aktif' : 'Nonaktif' }}
               </span>
@@ -825,7 +825,7 @@ function getAccountTypeLabel(type: string) {
           </div>
           <button
             type="button"
-            class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-muted hover:text-on-background cursor-pointer"
+            class="w-8 h-8 rounded-full bg-surface-container dark:bg-[#1e2029] flex items-center justify-center text-muted hover:text-on-background cursor-pointer"
             @click="closeDetailModal"
           >
             <span class="material-symbols-outlined text-[18px]">close</span>
@@ -835,40 +835,40 @@ function getAccountTypeLabel(type: string) {
         <!-- Debt Notification Banner if Debt -->
         <div
           v-if="selectedAccount.accountType === 'debt' || selectedAccount.balance < 0"
-          class="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs space-y-1"
+          class="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 text-xs space-y-1"
         >
           <div class="flex items-center gap-1.5 font-bold">
             <span class="material-symbols-outlined text-[16px]">info</span>
             <span>Perlakuan Sistem Hutang:</span>
           </div>
-          <p class="text-[11px] leading-relaxed">
+          <p class="text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
             Pos ini dicatat sebagai kewajiban dan tidak mengurangi total saldo aset kas keluarga.
           </p>
         </div>
 
         <!-- Info Table -->
         <div class="space-y-2 text-xs">
-          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low">
+          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low dark:bg-[#1e2029]">
             <span class="text-muted">Jenis Pos Akun</span>
-            <span class="font-bold">{{ getAccountTypeLabel(selectedAccount.accountType) }}</span>
+            <span class="font-bold text-on-background">{{ getAccountTypeLabel(selectedAccount.accountType) }}</span>
           </div>
-          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low">
+          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low dark:bg-[#1e2029]">
             <span class="text-muted">Saldo Saat Ini</span>
-            <span class="font-bold font-tabular-number" :class="selectedAccount.balance < 0 ? 'text-amber-600' : 'text-on-background'">
+            <span class="font-bold font-tabular-number" :class="selectedAccount.balance < 0 ? 'text-amber-600 dark:text-amber-400' : 'text-on-background'">
               {{ selectedAccount.balanceText }}
             </span>
           </div>
-          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low">
+          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low dark:bg-[#1e2029]">
             <span class="text-muted">Kepemilikan</span>
-            <span class="font-bold">{{ getOwnerLabel(selectedAccount.ownerType) }}</span>
+            <span class="font-bold text-on-background">{{ getOwnerLabel(selectedAccount.ownerType) }}</span>
           </div>
-          <div v-if="selectedAccount.accountNumber" class="flex justify-between p-3 rounded-2xl bg-surface-container-low">
+          <div v-if="selectedAccount.accountNumber" class="flex justify-between p-3 rounded-2xl bg-surface-container-low dark:bg-[#1e2029]">
             <span class="text-muted">Nomor Rekening / ID</span>
-            <span class="font-bold font-mono">{{ selectedAccount.accountNumber }}</span>
+            <span class="font-bold font-mono text-on-background">{{ selectedAccount.accountNumber }}</span>
           </div>
-          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low">
+          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low dark:bg-[#1e2029]">
             <span class="text-muted">Status Seleksi Transaksi</span>
-            <span class="font-bold" :class="selectedAccount.isActive ? 'text-emerald-600' : 'text-muted'">
+            <span class="font-bold" :class="selectedAccount.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'">
               {{ selectedAccount.isActive ? 'Tersedia di Menu Catat' : 'Disembunyikan dari Menu Catat' }}
             </span>
           </div>
@@ -878,7 +878,7 @@ function getAccountTypeLabel(type: string) {
         <div class="pt-2 flex gap-2">
           <button
             type="button"
-            class="flex-1 py-2.5 rounded-xl border border-amber-300 text-amber-700 bg-amber-50 text-xs font-bold hover:bg-amber-100 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            class="flex-1 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700/60 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             @click="openEditModal(selectedAccount)"
           >
             <span class="material-symbols-outlined text-[16px]">edit</span>
@@ -886,7 +886,7 @@ function getAccountTypeLabel(type: string) {
           </button>
           <button
             type="button"
-            class="flex-1 py-2.5 rounded-xl border border-rose-200 text-rose-600 bg-rose-50 text-xs font-bold hover:bg-rose-100 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            class="flex-1 py-2.5 rounded-xl border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             @click="handleDeleteAccount(selectedAccount); closeDetailModal()"
           >
             <span class="material-symbols-outlined text-[16px]">delete</span>

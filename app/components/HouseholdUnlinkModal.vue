@@ -39,14 +39,14 @@ async function handleConfirmUnlink() {
         class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md"
         @click.self="closeHouseholdUnlink"
       >
-        <div class="w-full max-w-[390px] bg-[#fcf8ff] rounded-[28px] shadow-2xl overflow-hidden border border-purple-100/80 p-5 sm:p-6 text-center space-y-4 animate-scale-up">
+        <div class="w-full max-w-[390px] bg-[#fcf8ff] dark:bg-[#15171e] rounded-[28px] shadow-2xl overflow-hidden border border-purple-100/80 dark:border-[#282b37] p-5 sm:p-6 text-center space-y-4 animate-scale-up">
 
           <!-- Destructive Warning Icon with broken chain badge -->
           <div class="relative inline-flex mx-auto mt-1">
-            <div class="w-20 h-20 rounded-full bg-rose-100/80 flex items-center justify-center text-rose-600 text-3xl shadow-inner ring-8 ring-rose-50/70">
+            <div class="w-20 h-20 rounded-full bg-rose-100/80 dark:bg-rose-950/40 flex items-center justify-center text-rose-600 dark:text-rose-400 text-3xl shadow-inner ring-8 ring-rose-50/70 dark:ring-rose-950/20">
               <span class="material-symbols-outlined text-[36px]">link_off</span>
             </div>
-            <span class="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md">
+            <span class="absolute -bottom-1 -right-1 bg-white dark:bg-[#1e2029] rounded-full p-1 shadow-md">
               <span class="block w-6 h-6 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center font-bold">
                 <span class="material-symbols-outlined text-[14px]">warning</span>
               </span>
@@ -55,39 +55,39 @@ async function handleConfirmUnlink() {
 
           <!-- Modal Title & Couple Subtitle -->
           <div class="space-y-1">
-            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">Putuskan Hubungan?</h2>
-            <p class="text-xs font-semibold text-purple-600">{{ householdName }} ({{ suamiName }} &amp; {{ istriName }})</p>
+            <h2 class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">Putuskan Hubungan?</h2>
+            <p class="text-xs font-semibold text-purple-600 dark:text-indigo-400">{{ householdName }} ({{ suamiName }} &amp; {{ istriName }})</p>
           </div>
 
-          <div v-if="errorMessage" class="p-2.5 bg-rose-100/80 border border-rose-200 text-rose-800 text-xs rounded-xl">
+          <div v-if="errorMessage" class="p-2.5 bg-rose-100/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs rounded-xl">
             {{ errorMessage }}
           </div>
 
           <!-- Warning Body Box (Soft Red) -->
-          <div class="bg-rose-50/70 border border-rose-100/90 rounded-2xl p-3.5 text-left space-y-2.5">
-            <p class="text-xs text-rose-900 font-medium leading-relaxed">
+          <div class="bg-rose-50/70 dark:bg-rose-950/25 border border-rose-100/90 dark:border-rose-900/40 rounded-2xl p-3.5 text-left space-y-2.5">
+            <p class="text-xs text-rose-900 dark:text-rose-200 font-medium leading-relaxed">
               Anda akan melepaskan hubungan dengan pasangan. <strong>Data keuangan pribadi tetap dipertahankan.</strong>
             </p>
-            <div class="pt-2 border-t border-rose-200/60 text-[11.5px] text-slate-600 space-y-1.5">
+            <div class="pt-2 border-t border-rose-200/60 dark:border-rose-900/40 text-[11.5px] text-slate-600 dark:text-slate-300 space-y-1.5">
               <div class="flex items-start gap-2 leading-snug">
-                <span class="material-symbols-outlined text-amber-500 text-[16px] shrink-0 mt-0.5">error</span>
+                <span class="material-symbols-outlined text-amber-500 dark:text-amber-400 text-[16px] shrink-0 mt-0.5">error</span>
                 <span><strong>Akses Rekening Bersama:</strong> Rekening gabungan tidak akan langsung dihapus, melainkan dibekukan untuk penyesuaian.</span>
               </div>
               <div class="flex items-start gap-2 leading-snug">
-                <span class="material-symbols-outlined text-emerald-600 text-[16px] shrink-0 mt-0.5">check_circle</span>
+                <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-400 text-[16px] shrink-0 mt-0.5">check_circle</span>
                 <span><strong>Data Aman:</strong> Tidak ada transaksi atau saldo individual yang dihapus secara otomatis.</span>
               </div>
             </div>
           </div>
 
           <!-- Notice: Penyesuaian Harta Bersama -->
-          <div class="bg-indigo-50/70 rounded-2xl p-3.5 text-left border border-indigo-100 flex items-start gap-2.5">
+          <div class="bg-indigo-50/70 dark:bg-indigo-950/30 rounded-2xl p-3.5 text-left border border-indigo-100 dark:border-indigo-900/40 flex items-start gap-2.5">
             <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs shrink-0 shadow-xs mt-0.5">
               <span class="material-symbols-outlined text-[16px]">balance</span>
             </div>
-            <div class="text-[11.5px] text-slate-800 leading-snug">
-              <span class="font-bold text-indigo-950">Rekomendasi Pemisahan Adil:</span>
-              <p class="text-slate-600 mt-0.5">Gunakan fitur <strong>Harta Bersama</strong> untuk membagi Pos Akun &amp; Goals bersama secara transparan sebelum mengakhiri status keluarga.</p>
+            <div class="text-[11.5px] text-slate-800 dark:text-slate-200 leading-snug">
+              <span class="font-bold text-indigo-950 dark:text-indigo-200">Rekomendasi Pemisahan Adil:</span>
+              <p class="text-slate-600 dark:text-slate-400 mt-0.5">Gunakan fitur <strong>Harta Bersama</strong> untuk membagi Pos Akun &amp; Goals bersama secara transparan sebelum mengakhiri status keluarga.</p>
             </div>
           </div>
 
@@ -96,7 +96,7 @@ async function handleConfirmUnlink() {
             <!-- Go to Harta Bersama -->
             <button
               type="button"
-              class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-md shadow-indigo-100 transition flex items-center justify-center gap-2 text-sm cursor-pointer"
+              class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-md shadow-indigo-100 dark:shadow-none transition flex items-center justify-center gap-2 text-sm cursor-pointer"
               @click="closeHouseholdUnlink(); navigateTo('/akun/harta-bersama')"
             >
               <span class="material-symbols-outlined text-[18px]">balance</span>
@@ -107,7 +107,7 @@ async function handleConfirmUnlink() {
             <button
               type="button"
               :disabled="isUnlinking"
-              class="w-full py-3 px-4 bg-rose-50 hover:bg-rose-100 active:scale-[0.99] disabled:opacity-50 text-rose-700 font-bold rounded-2xl border border-rose-200 transition flex items-center justify-center gap-2 text-xs cursor-pointer"
+              class="w-full py-3 px-4 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 active:scale-[0.99] disabled:opacity-50 text-rose-700 dark:text-rose-300 font-bold rounded-2xl border border-rose-200 dark:border-rose-900/50 transition flex items-center justify-center gap-2 text-xs cursor-pointer"
               @click="handleConfirmUnlink"
             >
               <span v-if="isUnlinking" class="material-symbols-outlined animate-spin text-[16px]">refresh</span>
@@ -118,7 +118,7 @@ async function handleConfirmUnlink() {
             <!-- Cancel Action -->
             <button
               type="button"
-              class="w-full py-2.5 px-4 text-slate-500 hover:text-slate-700 font-semibold rounded-2xl transition text-xs cursor-pointer"
+              class="w-full py-2.5 px-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-semibold rounded-2xl transition text-xs cursor-pointer"
               @click="closeHouseholdUnlink"
             >
               Batal
@@ -126,7 +126,7 @@ async function handleConfirmUnlink() {
           </div>
 
           <!-- Safety footnote -->
-          <div class="pt-1 text-center text-slate-400 text-[11px]">
+          <div class="pt-1 text-center text-slate-400 dark:text-slate-500 text-[11px]">
             Data keuangan personal Anda tetap tersimpan dengan aman
           </div>
 

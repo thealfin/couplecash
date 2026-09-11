@@ -292,7 +292,7 @@ async function handleDeleteCategory(cat: Category) {
         <input
           v-model="searchQuery"
           type="text"
-          class="w-full bg-white border border-surface-variant/60 rounded-2xl pl-10 pr-4 py-2.5 text-xs text-on-background placeholder:text-muted focus:outline-none focus:border-primary shadow-xs"
+          class="w-full bg-white dark:bg-[#15171e] border border-surface-variant/60 dark:border-[#282b37] rounded-2xl pl-10 pr-4 py-2.5 text-xs text-on-background placeholder:text-muted focus:outline-none focus:border-primary shadow-xs"
           placeholder="Cari kategori..."
         />
       </div>
@@ -305,7 +305,7 @@ async function handleDeleteCategory(cat: Category) {
         <span>Memuat kategori...</span>
       </div>
 
-      <div v-else-if="filteredCategories.length === 0" class="bg-white rounded-3xl p-8 text-center shadow-xs border border-surface-variant/40 flex flex-col items-center">
+      <div v-else-if="filteredCategories.length === 0" class="bg-white dark:bg-[#15171e] rounded-3xl p-8 text-center shadow-xs border border-surface-variant/40 dark:border-[#282b37] flex flex-col items-center">
         <div class="w-12 h-12 rounded-2xl bg-surface-container flex items-center justify-center text-muted mb-2">
           <span class="material-symbols-outlined text-[24px]">category</span>
         </div>
@@ -316,13 +316,13 @@ async function handleDeleteCategory(cat: Category) {
       <div
         v-for="cat in filteredCategories"
         :key="cat.id"
-        class="relative bg-white rounded-2xl p-3.5 shadow-xs border border-surface-variant/40 flex items-center justify-between hover:shadow-sm transition-all"
+        class="relative bg-white dark:bg-[#15171e] rounded-2xl p-3.5 shadow-xs border border-surface-variant/40 dark:border-[#282b37] flex items-center justify-between hover:shadow-sm transition-all"
       >
         <!-- Left: Icon & Info -->
         <div class="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" @click="openDetailModal(cat)">
           <div
             class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            :class="cat.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'"
+            :class="cat.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'"
           >
             <span class="material-symbols-outlined text-[20px]">{{ cat.icon || 'category' }}</span>
           </div>
@@ -331,7 +331,7 @@ async function handleDeleteCategory(cat: Category) {
               <span class="text-[13px] font-bold text-on-background truncate">{{ cat.name }}</span>
               <span
                 v-if="!cat.isActive"
-                class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-surface-container text-muted"
+                class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-surface-container dark:bg-[#1e2029] text-muted"
               >
                 Nonaktif
               </span>
@@ -346,7 +346,7 @@ async function handleDeleteCategory(cat: Category) {
           <button
             type="button"
             class="w-11 h-6 rounded-full transition-colors relative cursor-pointer focus:outline-none"
-            :class="cat.isActive ? 'bg-primary' : 'bg-slate-200'"
+            :class="cat.isActive ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'"
             @click.stop="toggleCategoryActive(cat)"
             :title="cat.isActive ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'"
           >
@@ -360,7 +360,7 @@ async function handleDeleteCategory(cat: Category) {
           <div class="relative">
             <button
               type="button"
-              class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-on-background hover:bg-surface-container transition-all cursor-pointer"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-muted hover:text-on-background hover:bg-surface-container dark:hover:bg-[#1e2029] transition-all cursor-pointer"
               @click.stop="toggleMenu(cat.id)"
               aria-label="Menu Opsi"
             >
@@ -370,12 +370,12 @@ async function handleDeleteCategory(cat: Category) {
             <!-- Dropdown Popover -->
             <div
               v-if="activeMenuId === cat.id"
-              class="absolute right-0 top-9 w-36 bg-white rounded-2xl shadow-xl border border-surface-variant/60 py-1.5 z-40 animate-slide-up"
+              class="absolute right-0 top-9 w-36 bg-white dark:bg-[#1e2029] rounded-2xl shadow-xl border border-surface-variant/60 dark:border-[#2e313d] py-1.5 z-40 animate-slide-up"
               @click.stop
             >
               <button
                 type="button"
-                class="w-full px-3 py-2 text-left text-xs font-semibold text-on-surface hover:bg-surface-container-low flex items-center gap-2 cursor-pointer"
+                class="w-full px-3 py-2 text-left text-xs font-semibold text-on-surface hover:bg-surface-container-low dark:hover:bg-[#282b37] flex items-center gap-2 cursor-pointer"
                 @click="openDetailModal(cat)"
               >
                 <span class="material-symbols-outlined text-[16px] text-primary">visibility</span>
@@ -383,16 +383,16 @@ async function handleDeleteCategory(cat: Category) {
               </button>
               <button
                 type="button"
-                class="w-full px-3 py-2 text-left text-xs font-semibold text-on-surface hover:bg-surface-container-low flex items-center gap-2 cursor-pointer"
+                class="w-full px-3 py-2 text-left text-xs font-semibold text-on-surface hover:bg-surface-container-low dark:hover:bg-[#282b37] flex items-center gap-2 cursor-pointer"
                 @click="openEditModal(cat)"
               >
                 <span class="material-symbols-outlined text-[16px] text-amber-500">edit</span>
                 <span>Edit</span>
               </button>
-              <div class="h-px bg-surface-variant/40 my-1"></div>
+              <div class="h-px bg-surface-variant/40 dark:bg-[#2e313d] my-1"></div>
               <button
                 type="button"
-                class="w-full px-3 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                class="w-full px-3 py-2 text-left text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer"
                 @click="handleDeleteCategory(cat)"
               >
                 <span class="material-symbols-outlined text-[16px] text-rose-500">delete</span>
@@ -425,10 +425,10 @@ async function handleDeleteCategory(cat: Category) {
       <div class="fixed inset-0 bg-black/40 backdrop-blur-[2px]" @click="closeFormModal"></div>
 
       <!-- Sheet Container -->
-      <div class="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 max-h-[90vh] flex flex-col animate-slide-up">
-        <div class="w-10 h-1 rounded-full bg-surface-variant mx-auto mb-3 sm:hidden"></div>
+      <div class="relative w-full max-w-md bg-white dark:bg-[#15171e] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 max-h-[90vh] flex flex-col animate-slide-up border dark:border-[#282b37]">
+        <div class="w-10 h-1 rounded-full bg-surface-variant dark:bg-[#282b37] mx-auto mb-3 sm:hidden"></div>
 
-        <div class="flex items-center justify-between pb-3 border-b border-surface-variant/40">
+        <div class="flex items-center justify-between pb-3 border-b border-surface-variant/40 dark:border-[#282b37]">
           <div>
             <h2 class="text-base font-bold text-on-background">
               {{ isEditing ? 'Edit Kategori' : 'Tambah Kategori Baru' }}
@@ -439,7 +439,7 @@ async function handleDeleteCategory(cat: Category) {
           </div>
           <button
             type="button"
-            class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-muted hover:text-on-background cursor-pointer"
+            class="w-8 h-8 rounded-full bg-surface-container dark:bg-[#1e2029] flex items-center justify-center text-muted hover:text-on-background cursor-pointer"
             @click="closeFormModal"
           >
             <span class="material-symbols-outlined text-[18px]">close</span>
@@ -447,7 +447,7 @@ async function handleDeleteCategory(cat: Category) {
         </div>
 
         <div class="overflow-y-auto py-4 space-y-4">
-          <div v-if="formError" class="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
+          <div v-if="formError" class="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
             <span class="material-symbols-outlined text-[18px]">error</span>
             <span>{{ formError }}</span>
           </div>
@@ -455,7 +455,7 @@ async function handleDeleteCategory(cat: Category) {
           <!-- Type Selector -->
           <div>
             <label class="block text-xs font-bold text-on-background mb-1.5">Tipe Kategori</label>
-            <div class="flex bg-surface-container-low p-1 rounded-2xl border border-surface-variant/50">
+            <div class="flex bg-surface-container-low dark:bg-[#1e2029] p-1 rounded-2xl border border-surface-variant/50 dark:border-[#2e313d]">
               <button
                 type="button"
                 class="flex-1 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer"
@@ -478,13 +478,13 @@ async function handleDeleteCategory(cat: Category) {
           <!-- Icon Grid -->
           <div>
             <label class="block text-xs font-bold text-on-background mb-1.5">Pilih Ikon</label>
-            <div class="grid grid-cols-5 gap-2 max-h-36 overflow-y-auto p-1 bg-surface-container-low rounded-2xl border border-surface-variant/40">
+            <div class="grid grid-cols-5 gap-2 max-h-36 overflow-y-auto p-1 bg-surface-container-low dark:bg-[#1e2029] rounded-2xl border border-surface-variant/40 dark:border-[#2e313d]">
               <button
                 v-for="icon in availableIcons"
                 :key="icon"
                 type="button"
                 class="w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer"
-                :class="formIcon === icon ? 'bg-primary text-white shadow-sm scale-105' : 'bg-white text-muted hover:text-on-background'"
+                :class="formIcon === icon ? 'bg-primary text-white shadow-sm scale-105' : 'bg-white dark:bg-[#15171e] text-muted hover:text-on-background'"
                 @click="formIcon = icon"
               >
                 <span class="material-symbols-outlined text-[20px]">{{ icon }}</span>
@@ -498,16 +498,16 @@ async function handleDeleteCategory(cat: Category) {
             <input
               v-model="formName"
               type="text"
-              class="w-full bg-surface-container-low border border-surface-variant/60 rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs"
+              class="w-full bg-surface-container-low dark:bg-[#1e2029] border border-surface-variant/60 dark:border-[#2e313d] rounded-2xl px-3.5 py-2.5 text-xs text-on-background focus:outline-none focus:border-primary shadow-xs"
               placeholder="Misal: Belanja Groceries"
             />
           </div>
         </div>
 
-        <div class="pt-3 border-t border-surface-variant/40 flex gap-2">
+        <div class="pt-3 border-t border-surface-variant/40 dark:border-[#282b37] flex gap-2">
           <button
             type="button"
-            class="flex-1 py-2.5 rounded-xl border border-surface-variant/60 text-xs font-bold text-muted hover:bg-surface-container transition-all cursor-pointer"
+            class="flex-1 py-2.5 rounded-xl border border-surface-variant/60 dark:border-[#2e313d] text-xs font-bold text-muted hover:bg-surface-container dark:hover:bg-[#1e2029] transition-all cursor-pointer"
             @click="closeFormModal"
           >
             Batal
@@ -534,15 +534,15 @@ async function handleDeleteCategory(cat: Category) {
     >
       <div class="fixed inset-0 bg-black/40 backdrop-blur-[2px]" @click="closeDetailModal"></div>
 
-      <div class="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 animate-slide-up space-y-4">
-        <div class="w-10 h-1 rounded-full bg-surface-variant mx-auto mb-2 sm:hidden"></div>
+      <div class="relative w-full max-w-md bg-white dark:bg-[#15171e] rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 animate-slide-up space-y-4 border dark:border-[#282b37]">
+        <div class="w-10 h-1 rounded-full bg-surface-variant dark:bg-[#282b37] mx-auto mb-2 sm:hidden"></div>
 
         <!-- Header -->
-        <div class="flex items-center justify-between pb-3 border-b border-surface-variant/40">
+        <div class="flex items-center justify-between pb-3 border-b border-surface-variant/40 dark:border-[#282b37]">
           <div class="flex items-center gap-3">
             <div
               class="w-12 h-12 rounded-2xl flex items-center justify-center"
-              :class="selectedCategory.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'"
+              :class="selectedCategory.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'"
             >
               <span class="material-symbols-outlined text-[26px]">{{ selectedCategory.icon || 'category' }}</span>
             </div>
@@ -550,7 +550,7 @@ async function handleDeleteCategory(cat: Category) {
               <h2 class="text-base font-bold text-on-background">{{ selectedCategory.name }}</h2>
               <span
                 class="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                :class="selectedCategory.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-surface-container text-muted'"
+                :class="selectedCategory.isActive ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300' : 'bg-surface-container dark:bg-[#1e2029] text-muted'"
               >
                 {{ selectedCategory.isActive ? 'Aktif' : 'Nonaktif' }}
               </span>
@@ -558,7 +558,7 @@ async function handleDeleteCategory(cat: Category) {
           </div>
           <button
             type="button"
-            class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-muted hover:text-on-background cursor-pointer"
+            class="w-8 h-8 rounded-full bg-surface-container dark:bg-[#1e2029] flex items-center justify-center text-muted hover:text-on-background cursor-pointer"
             @click="closeDetailModal"
           >
             <span class="material-symbols-outlined text-[18px]">close</span>
@@ -567,19 +567,19 @@ async function handleDeleteCategory(cat: Category) {
 
         <!-- Details Info Table -->
         <div class="space-y-2.5 text-xs">
-          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low">
+          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low dark:bg-[#1e2029]">
             <span class="text-muted">Tipe Kategori</span>
-            <span class="font-bold capitalize">{{ selectedCategory.type === 'income' ? 'Pemasukan' : 'Pengeluaran' }}</span>
+            <span class="font-bold capitalize text-on-background">{{ selectedCategory.type === 'income' ? 'Pemasukan' : 'Pengeluaran' }}</span>
           </div>
-          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low">
+          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low dark:bg-[#1e2029]">
             <span class="text-muted">Status Seleksi Transaksi</span>
-            <span class="font-bold" :class="selectedCategory.isActive ? 'text-emerald-600' : 'text-muted'">
+            <span class="font-bold" :class="selectedCategory.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted'">
               {{ selectedCategory.isActive ? 'Tersedia di Menu Catat' : 'Disembunyikan dari Menu Catat' }}
             </span>
           </div>
-          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low">
+          <div class="flex justify-between p-3 rounded-2xl bg-surface-container-low dark:bg-[#1e2029]">
             <span class="text-muted">Kategori Bawaan</span>
-            <span class="font-bold">{{ selectedCategory.isDefault ? 'Ya (Sistem)' : 'Kustom Pengguna' }}</span>
+            <span class="font-bold text-on-background">{{ selectedCategory.isDefault ? 'Ya (Sistem)' : 'Kustom Pengguna' }}</span>
           </div>
         </div>
 
@@ -587,7 +587,7 @@ async function handleDeleteCategory(cat: Category) {
         <div class="pt-2 flex gap-2">
           <button
             type="button"
-            class="flex-1 py-2.5 rounded-xl border border-amber-300 text-amber-700 bg-amber-50 text-xs font-bold hover:bg-amber-100 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            class="flex-1 py-2.5 rounded-xl border border-amber-300 dark:border-amber-700/60 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-950/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             @click="openEditModal(selectedCategory)"
           >
             <span class="material-symbols-outlined text-[16px]">edit</span>
@@ -595,7 +595,7 @@ async function handleDeleteCategory(cat: Category) {
           </button>
           <button
             type="button"
-            class="flex-1 py-2.5 rounded-xl border border-rose-200 text-rose-600 bg-rose-50 text-xs font-bold hover:bg-rose-100 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            class="flex-1 py-2.5 rounded-xl border border-rose-200 dark:border-rose-800/60 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             @click="handleDeleteCategory(selectedCategory); closeDetailModal()"
           >
             <span class="material-symbols-outlined text-[16px]">delete</span>

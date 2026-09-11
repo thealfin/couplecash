@@ -459,13 +459,13 @@ async function handleDeleteBill() {
       <!-- 2. Urgent / Overdue -->
       <div
         class="metric-card border"
-        :class="summary.overdueCount > 0 ? 'bg-rose-50/50 border-rose-200' : summary.urgentCount > 0 ? 'bg-amber-50/50 border-amber-200' : 'bg-surface-container-lowest border-outline-variant/30'"
+        :class="summary.overdueCount > 0 ? 'bg-rose-50/50 dark:bg-rose-950/25 border-rose-200 dark:border-rose-900/40' : summary.urgentCount > 0 ? 'bg-amber-50/50 dark:bg-amber-950/25 border-amber-200 dark:border-amber-900/40' : 'bg-surface-container-lowest border-outline-variant/30'"
       >
-        <div class="flex items-center gap-1.5 text-[11px] font-semibold mb-1" :class="summary.overdueCount > 0 ? 'text-rose-700' : 'text-amber-700'">
+        <div class="flex items-center gap-1.5 text-[11px] font-semibold mb-1" :class="summary.overdueCount > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-amber-700 dark:text-amber-400'">
           <span class="material-symbols-outlined text-[16px]">notification_important</span>
           <span>Perlu Bayar (H-3)</span>
         </div>
-        <div class="font-extrabold text-base tabular-nums" :class="summary.overdueCount > 0 ? 'text-rose-700' : 'text-amber-800'">
+        <div class="font-extrabold text-base tabular-nums" :class="summary.overdueCount > 0 ? 'text-rose-700 dark:text-rose-300' : 'text-amber-800 dark:text-amber-300'">
           {{ summary.urgentCount + summary.overdueCount }} Tagihan
         </div>
         <span class="text-[10px] text-muted">Mendekati jatuh tempo</span>
@@ -473,11 +473,11 @@ async function handleDeleteBill() {
 
       <!-- 3. Lunas -->
       <div class="metric-card bg-surface-container-lowest border border-outline-variant/30">
-        <div class="flex items-center gap-1.5 text-emerald-700 text-[11px] font-semibold mb-1">
+        <div class="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold mb-1">
           <span class="material-symbols-outlined text-[16px]">verified</span>
           <span>Sudah Lunas</span>
         </div>
-        <div class="font-extrabold text-base text-emerald-700 tabular-nums">
+        <div class="font-extrabold text-base text-emerald-700 dark:text-emerald-400 tabular-nums">
           {{ summary.paidCount }} Tagihan
         </div>
         <span class="text-[10px] text-muted">Tercatat di pengeluaran</span>
@@ -1405,16 +1405,32 @@ async function handleDeleteBill() {
   border-color: #A7F3D0;
   background: #F0FDF4;
 }
+:global(.dark) .bill-card--paid,
+.dark .bill-card--paid {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(6, 78, 59, 0.2);
+}
 
 .bill-card--overdue {
   border-color: #FECDD3;
   background: #FFF1F2;
+}
+:global(.dark) .bill-card--overdue,
+.dark .bill-card--overdue {
+  border-color: rgba(244, 63, 94, 0.35);
+  background: rgba(136, 19, 55, 0.2);
 }
 
 .bill-card--urgent {
   border-color: #FDE68A;
   background: #FFFBEB;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+}
+:global(.dark) .bill-card--urgent,
+.dark .bill-card--urgent {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(120, 53, 15, 0.2);
+  box-shadow: none;
 }
 
 .bill-info-wrap {
@@ -1436,10 +1452,20 @@ async function handleDeleteBill() {
   background: #EEF2FF;
   color: #4F46E5;
 }
+:global(.dark) .bill-icon-box,
+.dark .bill-icon-box {
+  background: rgba(79, 70, 229, 0.2);
+  color: #a5b4fc;
+}
 
 .bill-icon-box--lunas {
   background: #ECFDF5;
   color: #059669;
+}
+:global(.dark) .bill-icon-box--lunas,
+.dark .bill-icon-box--lunas {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
 }
 
 .owner-tag {
@@ -1456,6 +1482,10 @@ async function handleDeleteBill() {
   font-size: 8px;
   font-weight: 800;
   color: white;
+}
+:global(.dark) .owner-tag,
+.dark .owner-tag {
+  border-color: #15171e;
 }
 .owner-tag--suami { background: #3B82F6; }
 .owner-tag--istri { background: #EC4899; }
@@ -1484,10 +1514,14 @@ async function handleDeleteBill() {
   white-space: nowrap;
 }
 .badge-urgency--paid { background: #D1FAE5; color: #065F46; }
+:global(.dark) .badge-urgency--paid, .dark .badge-urgency--paid { background: rgba(6, 78, 59, 0.6); color: #6ee7b7; }
 .badge-urgency--overdue { background: #FFE4E6; color: #9F1239; border: 1px solid #FDA4AF; }
+:global(.dark) .badge-urgency--overdue, .dark .badge-urgency--overdue { background: rgba(136, 19, 55, 0.6); color: #fda4af; border-color: rgba(244, 63, 94, 0.4); }
 .badge-urgency--today { background: #EF4444; color: white; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 .badge-urgency--urgent { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+:global(.dark) .badge-urgency--urgent, .dark .badge-urgency--urgent { background: rgba(120, 53, 15, 0.6); color: #fde68a; border-color: rgba(245, 158, 11, 0.4); }
 .badge-urgency--upcoming { background: #F1F5F9; color: #475569; }
+:global(.dark) .badge-urgency--upcoming, .dark .badge-urgency--upcoming { background: #1e2029; color: #94a3b8; }
 
 .bill-meta-row {
   display: flex;
@@ -1681,6 +1715,11 @@ async function handleDeleteBill() {
   justify-content: center;
   margin-bottom: 8px;
 }
+:global(.dark) .empty-icon-wrap,
+.dark .empty-icon-wrap {
+  background: rgba(79, 70, 229, 0.2);
+  color: #a5b4fc;
+}
 
 /* Modals */
 .modal-card {
@@ -1752,11 +1791,23 @@ async function handleDeleteBill() {
   color: var(--primary);
   font-weight: 700;
 }
+:global(.dark) .owner-toggle-btn--active,
+.dark .owner-toggle-btn--active {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
 .owner-toggle-btn--active-suami {
   border-color: #3B82F6;
   background: #EFF6FF;
   color: #2563EB;
   font-weight: 700;
+}
+:global(.dark) .owner-toggle-btn--active-suami,
+.dark .owner-toggle-btn--active-suami {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
 }
 .owner-toggle-btn--active-istri {
   border-color: #EC4899;
@@ -1764,11 +1815,23 @@ async function handleDeleteBill() {
   color: #DB2777;
   font-weight: 700;
 }
+:global(.dark) .owner-toggle-btn--active-istri,
+.dark .owner-toggle-btn--active-istri {
+  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.2);
+  color: #f472b6;
+}
 .owner-toggle-btn--active-sendiri {
   border-color: #6366F1;
   background: #EEF2FF;
   color: #4F46E5;
   font-weight: 700;
+}
+:global(.dark) .owner-toggle-btn--active-sendiri,
+.dark .owner-toggle-btn--active-sendiri {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
 }
 
 .modal-error-box {
@@ -1782,6 +1845,12 @@ async function handleDeleteBill() {
   color: #BE123C;
   font-size: 12px;
   font-weight: 600;
+}
+:global(.dark) .modal-error-box,
+.dark .modal-error-box {
+  background: rgba(159, 18, 57, 0.3);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #fda4af;
 }
 
 .btn-cancel {

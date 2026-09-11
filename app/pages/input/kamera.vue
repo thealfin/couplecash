@@ -6,8 +6,16 @@ useHead({ title: 'Scan Struk AI — CoupleCash' })
 
 const router = useRouter()
 const { uploadFile } = useStorage()
-const { settings, hasKey, loadSettings, getGeminiKey } = useAiSettings()
+const { settings, hasKey, loadSettings, getGeminiKey, AVAILABLE_AI_MODELS } = useAiSettings()
 const { saveReceiptToCache, updateReceiptInCache } = useReceiptCache()
+
+const currentModelInfo = computed(() => {
+  return AVAILABLE_AI_MODELS.find((m) => m.id === settings.value.model) || null
+})
+
+const currentModelName = computed(() => {
+  return currentModelInfo.value?.name || settings.value.model || 'Gemini Flash'
+})
 
 const videoElement = ref<HTMLVideoElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -306,7 +314,7 @@ async function processReceiptSnapshot(
 
     // 4. Call AI Vision Analyzer directly using cached local base64
     progressValue.value = 65
-    statusText.value = `Membaca nota dengan ${settings.value.model === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : 'Gemini 2.5 Flash'}...`
+    statusText.value = `Membaca nota dengan ${currentModelName.value}...`
 
     const result: any = await $fetch('/api/ai/analyze-receipt', {
       method: 'POST',
@@ -440,7 +448,7 @@ function triggerFileInput() {
         <span class="material-symbols-outlined text-[18px] text-indigo-400 animate-pulse">auto_awesome</span>
         <div class="flex items-center gap-1.5 font-medium text-xs tracking-wide">
           <span class="font-semibold text-white">
-            {{ settings.model === 'gemini-2.5-pro' ? 'Gemini 2.5 Pro' : 'Gemini 2.5 Flash' }}
+            {{ currentModelName }}
           </span>
           <span class="w-1.5 h-1.5 rounded-full" :class="hasKey ? 'bg-emerald-400' : 'bg-rose-400'"></span>
           <span :class="hasKey ? 'text-emerald-400' : 'text-rose-400'" class="font-medium text-[10px]">
@@ -645,6 +653,7 @@ function triggerFileInput() {
     <AiModelSettingsSheet
       :is-open="isModelSheetOpen"
       @close="isModelSheetOpen = false"
+      @saved="(newSettings) => { settings.model = newSettings.model }"
     />
   </div>
 </template>

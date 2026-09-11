@@ -1,50 +1,49 @@
-import { db } from '../../db/client'
-import { aiChatSessions, users } from '../../db/schema'
-import { eq } from 'drizzle-orm'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin, getUserFromToken } from '../../utils/supabaseAdmin'
 
 export default defineEventHandler(async (event) => {
   try {
     const authHeader = getHeader(event, 'Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
+    const user = await getUserFromToken(authHeader)
+
+    if (!user) {
       throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
     }
 
-    const token = authHeader.split(' ')[1]
-    const supabaseUrl = process.env.SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const admin = getSupabaseAdmin()
+    const { data: profile } = await admin
+      .from('users')
+      .select('id, household_id')
+      .eq('auth_user_id', user.id)
+      .single()
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      throw createError({ statusCode: 500, statusMessage: 'Missing Supabase credentials' })
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
-
-    if (authError || !user) {
-      throw createError({ statusCode: 401, statusMessage: 'Invalid token' })
-    }
-
-    const currentUser = await db.query.users.findFirst({
-      where: eq(users.authUserId, user.id),
-      with: { household: true },
-    })
-
-    if (!currentUser || !currentUser.householdId) {
+    if (!profile || !profile.household_id) {
       throw createError({ statusCode: 404, statusMessage: 'User profile not found' })
     }
 
-    const { title } = await readBody(event)
+    const { title } = (await readBody(event)) || {}
 
-    const [newSession] = await db.insert(aiChatSessions).values({
-      householdId: currentUser.householdId,
-      userId: currentUser.id,
-      title: title || 'Chat Baru',
-    }).returning()
+    const { data: newSession, error } = await admin
+      .from('ai_chat_sessions')
+      .insert({
+        household_id: profile.household_id,
+        user_id: profile.id,
+        title: title || 'Chat Baru',
+      })
+      .select()
+      .single()
+
+    if (error) throw error
 
     return {
       success: true,
-      session: newSession,
+      session: {
+        id: newSession.id,
+        householdId: newSession.household_id,
+        userId: newSession.user_id,
+        title: newSession.title,
+        createdAt: newSession.created_at,
+        updatedAt: newSession.updated_at,
+      },
     }
   } catch (err: any) {
     if (err.statusCode) throw err
